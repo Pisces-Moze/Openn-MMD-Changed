@@ -45,6 +45,7 @@ final class GpuSkinningModelRenderer {
         if (IrisCompat.isRenderingShadows()) {
             return;
         }
+        deliverStack.pushPose();
         OpenGlStateSnapshot glState = OpenGlStateSnapshot.capture();
         try {
         Minecraft minecraft = Minecraft.getInstance();
@@ -105,15 +106,10 @@ final class GpuSkinningModelRenderer {
         GL46C.glBindVertexArray(0);
         RenderSystem.activeTexture(GL46C.GL_TEXTURE0);
 
-        ShaderInstance currentShader = RenderSystem.getShader();
-        if (currentShader != null && !IrisCompat.isIrisShaderActive()) {
-            currentShader.clear();
-        } else if (currentShader != null) {
-            currentShader.apply();
-        }
         BufferUploader.reset();
         RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
         } finally {
+            deliverStack.popPose();
             glState.restore();
         }
     }
@@ -303,14 +299,6 @@ final class GpuSkinningModelRenderer {
     }
 
     private static void renderToon(GpuSkinningModelInstance target, Minecraft minecraft, float lightIntensity) {
-        if (IrisCompat.isIrisShaderActive()) {
-            ShaderInstance irisShader = RenderSystem.getShader();
-            if (irisShader != null) {
-                target.setUniforms(irisShader, target.currentDeliverStack);
-                irisShader.apply();
-            }
-        }
-
         GpuSkinningModelInstance.toonShaderCpu.useMain();
         int toonPosLoc = GpuSkinningModelInstance.toonShaderCpu.getPositionLocation();
         int toonNorLoc = GpuSkinningModelInstance.toonShaderCpu.getNormalLocation();
@@ -456,8 +444,6 @@ final class GpuSkinningModelRenderer {
         if (IrisCompat.isRenderingShadows()) {
             return;
         }
-        ShaderInstance previousIrisShader = IrisCompat.isIrisShaderActive()
-                ? RenderSystem.getShader() : null;
         FullbrightLayerShader shader = FullbrightLayerShader.getOrCreate();
         if (shader == null) {
             return;
@@ -507,9 +493,6 @@ final class GpuSkinningModelRenderer {
         RenderSystem.depthMask(true);
         if (posLoc >= 0) GL46C.glDisableVertexAttribArray(posLoc);
         if (uvLoc >= 0) GL46C.glDisableVertexAttribArray(uvLoc);
-        if (previousIrisShader != null) {
-            previousIrisShader.apply();
-        }
     }
 
     private static void drawToonSubMeshes(GpuSkinningModelInstance target, Minecraft minecraft, float lightIntensity) {

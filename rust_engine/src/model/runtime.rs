@@ -2305,7 +2305,8 @@ impl MmdModel {
             && crate::physics::config::get_config().enabled
         {
             if let Some(mut spring) = self.secondary_spring.take() {
-                spring.process(&mut self.bone_manager, elapsed.min(1.0 / 15.0));
+                spring.process_with_model_transform(&mut self.bone_manager,
+                    elapsed.min(1.0 / 15.0), self.model_transform);
                 self.secondary_spring = Some(spring);
             }
         }
@@ -2391,8 +2392,25 @@ impl MmdModel {
             None
         }
         let count = self.bone_manager.bone_count();
-        let kinds = (0..count).map(|i| self.bone_manager.get_bone(i)
+        let mut kinds = (0..count).map(|i| self.bone_manager.get_bone(i)
             .and_then(|b| category(&b.name))).collect::<Vec<_>>();
+        let humanoid_tokens = ["head", "neck", "spine", "chest", "hips", "arm", "leg", "hand", "foot",
+            "頭", "首", "上半身", "下半身", "腕", "足", "手首"];
+        for _ in 0..count {
+            let mut changed = false;
+            for parent in 0..count {
+                let Some(kind) = kinds[parent] else { continue; };
+                for &child in self.bone_manager.children_of(parent) {
+                    if kinds.get(child).copied().flatten().is_some() { continue; }
+                    let name = self.bone_manager.get_bone(child)
+                        .map(|bone| bone.name.to_lowercase()).unwrap_or_default();
+                    if humanoid_tokens.iter().any(|token| name.contains(token)) { continue; }
+                    kinds[child] = Some(kind);
+                    changed = true;
+                }
+            }
+            if !changed { break; }
+        }
         let mut springs = Vec::new();
         for root in 0..count {
             let Some(kind) = kinds[root] else { continue; };
@@ -2409,15 +2427,15 @@ impl MmdModel {
             }
             if nodes.len() < 2 { continue; }
             let (stiffness, gravity_power, drag_force) = match kind {
-                1 => (0.72, 0.018, 0.18), 2 => (0.82, 0.010, 0.24),
-                3 => (0.62, 0.025, 0.30), _ => (0.58, 0.032, 0.34),
+                1 => (1.20, 0.15, 0.25), 2 => (1.80, 0.08, 0.35),
+                3 => (0.90, 0.25, 0.38), _ => (0.75, 0.35, 0.42),
             };
             let joints = nodes.into_iter().map(|node| SpringBoneJoint {
                 node, hit_radius: 0.015, stiffness, gravity_power,
                 gravity_dir: [0.0, -1.0, 0.0], drag_force,
             }).collect();
             springs.push(SpringBoneSpring { joints, collider_groups: Vec::new(),
-                center: (parent >= 0).then_some(parent as usize) });
+                center: None });
         }
         if springs.is_empty() { return; }
         let chain_count = springs.len();
@@ -2442,12 +2460,12 @@ impl MmdModel {
 
     /// 获取物理是否启用
     pub fn is_physics_enabled(&self) -> bool {
-        self.physics_enabled && self.physics.is_some()
+        self.physics_enabled && (self.physics.is_some() || self.secondary_spring.is_some())
     }
 
     /// 获取物理系统是否已初始化
     pub fn has_physics(&self) -> bool {
-        self.physics.is_some()
+        self.physics.is_some() || self.secondary_spring.is_some()
     }
 
     /// 更新物理模拟（Bullet3）

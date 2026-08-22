@@ -39,6 +39,7 @@ final class OpenGlModelRenderer {
         if (IrisCompat.isRenderingShadows()) {
             return;
         }
+        deliverStack.pushPose();
         OpenGlStateSnapshot glState = OpenGlStateSnapshot.capture();
         try {
         Minecraft minecraft = Minecraft.getInstance();
@@ -89,6 +90,7 @@ final class OpenGlModelRenderer {
             RenderPerformanceProfiler.get().endTimer(RenderPerformanceProfiler.SECTION_DRAW, drawTimer);
         }
         } finally {
+            deliverStack.popPose();
             glState.restore();
         }
     }
@@ -426,8 +428,6 @@ final class OpenGlModelRenderer {
         if (IrisCompat.isRenderingShadows()) {
             return;
         }
-        ShaderInstance previousIrisShader = IrisCompat.isIrisShaderActive()
-                ? RenderSystem.getShader() : null;
         FullbrightLayerShader shader = FullbrightLayerShader.getOrCreate();
         if (shader == null) {
             return;
@@ -476,9 +476,6 @@ final class OpenGlModelRenderer {
         RenderSystem.depthMask(true);
         if (posLoc >= 0) GL46C.glDisableVertexAttribArray(posLoc);
         if (uvLoc >= 0) GL46C.glDisableVertexAttribArray(uvLoc);
-        if (previousIrisShader != null) {
-            previousIrisShader.apply();
-        }
     }
 
     private static void clearStandardRenderState(OpenGlModelInstance target) {
@@ -523,14 +520,6 @@ final class OpenGlModelRenderer {
         RenderSystem.enableDepthTest();
         RenderSystem.blendEquation(GL46C.GL_FUNC_ADD);
         RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA, GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
-
-        if (IrisCompat.isIrisShaderActive()) {
-            ShaderInstance irisShader = RenderSystem.getShader();
-            if (irisShader != null) {
-                target.setUniforms(irisShader, deliverStack);
-                irisShader.apply();
-            }
-        }
 
         long currentRevision = target.nativeUpdateRevisionValue();
         if (target.lastPositionRevision != currentRevision) {

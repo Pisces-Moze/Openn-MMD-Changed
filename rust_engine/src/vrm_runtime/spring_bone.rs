@@ -79,6 +79,7 @@ struct ResolvedCollider {
 pub struct SpringBoneRuntime {
     chains: Vec<SpringChainRuntime>,
     colliders: Vec<ResolvedCollider>,
+    previous_model_transform: Option<Mat4>,
 }
 
 impl SpringBoneRuntime {
@@ -105,7 +106,24 @@ impl SpringBoneRuntime {
             .filter_map(|spring| resolve_chain(spring, &spring_meta, &colliders, bones))
             .collect();
 
-        Self { chains, colliders }
+        Self { chains, colliders, previous_model_transform: None }
+    }
+
+    pub fn process_with_model_transform(&mut self, bones: &mut BoneManager,
+                                        delta_time: f32, model_transform: Mat4) {
+        if let Some(previous) = self.previous_model_transform {
+            let old_to_new_local = model_transform.inverse() * previous;
+            for chain in &mut self.chains {
+                for joint in &mut chain.joints {
+                    if matches!(joint.state.space, TailSpace::World) {
+                        joint.state.current_tail = old_to_new_local.transform_point3(joint.state.current_tail);
+                        joint.state.prev_tail = old_to_new_local.transform_point3(joint.state.prev_tail);
+                    }
+                }
+            }
+        }
+        self.previous_model_transform = Some(model_transform);
+        self.process(bones, delta_time);
     }
 
     pub fn process(&mut self, bones: &mut BoneManager, delta_time: f32) {
