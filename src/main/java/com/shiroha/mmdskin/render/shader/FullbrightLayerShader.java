@@ -17,6 +17,7 @@ public final class FullbrightLayerShader {
     private int intensityLocation;
     private int opacityLocation;
     private int depthBiasLocation;
+    private int cyanMaskLocation;
 
     private FullbrightLayerShader() {
     }
@@ -55,6 +56,7 @@ public final class FullbrightLayerShader {
         intensityLocation = GL46C.glGetUniformLocation(program, "Intensity");
         opacityLocation = GL46C.glGetUniformLocation(program, "Opacity");
         depthBiasLocation = GL46C.glGetUniformLocation(program, "DepthBias");
+        cyanMaskLocation = GL46C.glGetUniformLocation(program, "CyanMask");
         return true;
     }
 
@@ -67,10 +69,11 @@ public final class FullbrightLayerShader {
         GL46C.glUniform1i(samplerLocation, 0);
     }
 
-    public void setAppearance(float intensity, float opacity, float depthBias) {
+    public void setAppearance(float intensity, float opacity, float depthBias, boolean cyanMask) {
         GL46C.glUniform1f(intensityLocation, intensity);
         GL46C.glUniform1f(opacityLocation, opacity);
         GL46C.glUniform1f(depthBiasLocation, depthBias);
+        GL46C.glUniform1i(cyanMaskLocation, cyanMask ? 1 : 0);
     }
 
     public int positionLocation() {

@@ -22,14 +22,13 @@ lilToon 面向 Unity 的 ShaderLab/HLSL、Unity 材质属性和 Unity 渲染管�
 Unity 的 ShaderLab 编译器、宏、灯光结构、摄像机变量与材质序列化系统。因此，
 `third_party/lilToon` 是实现行为对照和公式来源，不会加入 Java/Forge 编译路径。
 
-移植层需要把目标效果逐项重新实现为 GLSL 和 Java 材质状态，不能把 `.shader`
-或 `.hlsl` 文件直接复制到 Minecraft 资源目录。
+移植层需要把目标效果逐项重新实现为 GLSL 和 Java 材质状态。
 
 ## 第一阶段功能映射
 
 | lilToon 概念 | Minecraft/MMD 移植目标 |
 | --- | --- |
-| Main Color | PMX 基础贴图与材质颜色，保持原始蓝绿色 |
+| Main Color | PMX 基础贴图与材质颜色 |
 | Shadow / Shadow Border | 两段式卡通明暗和可调软边 |
 | Emission / Fluorescence | 独立发光贴图与遮罩，不受方块光照压暗 |
 | Outline | 背面扩张描边，排除眼睛等面部材质 |
@@ -141,6 +140,10 @@ python tools/import_unity_liltoon.py `
   "cyanEmissionStrength": 0.8
 }
 ```
+
+青色荧光使用独立 fullbright 附加层实现，因此开启 Iris/OptiFine 风格光影包时
+仍然生效。光影包启用期间，基础模型交由其实体管线绘制以接收和投射阴影；发光
+附加层只在正常画面 pass 绘制，在 shadow pass 中自动跳过，不会污染阴影贴图。
 
 ### 发光层处理规则
 

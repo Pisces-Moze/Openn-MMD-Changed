@@ -60,7 +60,10 @@ final class GpuSkinningModelRenderer {
 
         updateGpuStateIfDirty(target, nativeBackend, modelHandle);
 
-        boolean useToon = initializeToonShaderIfNeeded();
+        // Preserve Iris' entity/shadow program while a shader pack is active.
+        // The standalone lilToon program has no access to pack-specific shadow
+        // samplers and would otherwise bypass both casting and receiving shadows.
+        boolean useToon = !IrisCompat.isIrisShaderActive() && initializeToonShaderIfNeeded();
         boolean hurt = entityIn instanceof LivingEntity living && living.hurtTime > 0;
 
         BufferUploader.reset();
@@ -439,6 +442,9 @@ final class GpuSkinningModelRenderer {
     }
 
     private static void renderFullbrightLayers(GpuSkinningModelInstance target) {
+        if (IrisCompat.isRenderingShadows()) {
+            return;
+        }
         FullbrightLayerShader shader = FullbrightLayerShader.getOrCreate();
         if (shader == null) {
             return;
@@ -470,13 +476,25 @@ final class GpuSkinningModelRenderer {
                 target.subMeshCount,
                 target.indexElementSize,
                 target.indexType,
+                materialId -> target.mats[materialId].tex,
+                target::effectiveMaterialAlpha,
+                materialId -> target.mats[materialId].lilCyanEmissionStrength > 0.0f,
+                materialId -> shader.setAppearance(
+                        target.mats[materialId].lilCyanEmissionStrength,
+                        1.0f, 0.00012f, true));
+        SubMeshDrawHelper.draw(
+                target.subMeshDataBuf,
+                target.subMeshCount,
+                target.indexElementSize,
+                target.indexType,
                 materialId -> target.mats[materialId].emissiveTex,
                 target::effectiveMaterialAlpha,
                 materialId -> target.mats[materialId].hasEmission(),
             materialId -> shader.setAppearance(
                         target.mats[materialId].emissionStrength(),
                         1.0f,
-                        target.mats[materialId].isFacialFeature() ? 0.0f : 0.00012f));
+                        target.mats[materialId].isFacialFeature() ? 0.0f : 0.00012f,
+                        false));
         RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA,
                 GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
         RenderSystem.depthMask(true);

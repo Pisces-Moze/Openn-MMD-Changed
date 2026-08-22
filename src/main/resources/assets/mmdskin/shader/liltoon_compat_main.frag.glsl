@@ -90,18 +90,6 @@ void main() {
     float rim = (UseRim != 0 ? rimEdge : 0.0) * RimIntensity;
     color += RimColor * rim;
 
-    // Optional, material-scoped fluorescent coating. It is disabled by default
-    // and only extracts saturated cyan from the base texture when explicitly
-    // requested by liltoon_materials.json.
-    float hi = max(albedo.r, max(albedo.g, albedo.b));
-    float lo = min(albedo.r, min(albedo.g, albedo.b));
-    float chroma = hi - lo;
-    float cyanHue = smoothstep(albedo.r * 1.08 + 0.015,
-            albedo.r * 1.30 + 0.035, min(albedo.g, albedo.b));
-    float cyanMask = smoothstep(0.16, 0.34, chroma)
-            * smoothstep(0.42, 0.70, hi) * cyanHue;
-    color += albedo * cyanMask * max(EmissionStrength, 0.0) * 1.20;
-
     color = mix(color, vec3(max(color.r, 0.72), color.g * 0.32, color.b * 0.32),
                 saturate(HurtFactor));
     fragColor = vec4(color, mainTex.a);
