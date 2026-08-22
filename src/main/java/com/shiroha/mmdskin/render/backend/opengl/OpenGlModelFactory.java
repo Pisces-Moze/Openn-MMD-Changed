@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.BufferUploader;
 import com.shiroha.mmdskin.bridge.runtime.NativeRenderBackendPort;
 import com.shiroha.mmdskin.render.bootstrap.ClientRenderRuntime;
 import com.shiroha.mmdskin.render.material.ModelMaterial;
+import com.shiroha.mmdskin.render.material.LilToonMaterialConfig;
 import com.shiroha.mmdskin.texture.runtime.TextureRepository;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -108,12 +109,14 @@ final class OpenGlModelFactory {
             };
 
             List<String> texKeys = new ArrayList<>();
+            LilToonMaterialConfig lilToonConfig = LilToonMaterialConfig.load(modelDir);
             ModelMaterial[] mats = new ModelMaterial[nativeBackend.getMaterialCount(model)];
             for (int i = 0; i < mats.length; ++i) {
                 mats[i] = new ModelMaterial();
                 mats[i].name = nativeBackend.getMaterialName(model, i);
                 String texFilename = nativeBackend.getMaterialTexturePath(model, i);
                 mats[i].texturePath = texFilename != null ? texFilename : "";
+                lilToonConfig.apply(mats[i]);
                 if (texFilename != null && !texFilename.isEmpty()) {
                     TextureRepository.Texture mgrTex = TextureRepository.GetTexture(texFilename);
                     if (mgrTex != null) {
@@ -132,12 +135,17 @@ final class OpenGlModelFactory {
                             texKeys.add(eyePath);
                         }
                     }
-                    String emissivePath = ModelMaterial.emissionTexturePath(texFilename);
-                    TextureRepository.Texture emissiveTexture = TextureRepository.GetTexture(emissivePath);
-                    if (emissiveTexture != null) {
-                        mats[i].emissiveTex = emissiveTexture.tex;
-                        TextureRepository.addRef(emissivePath);
-                        texKeys.add(emissivePath);
+                    if (mats[i].lilUseEmission) {
+                        String configuredEmission = mats[i].configuredEmissionPath(modelDir);
+                        String emissivePath = configuredEmission.isEmpty()
+                                ? ModelMaterial.emissionTexturePath(texFilename)
+                                : configuredEmission;
+                        TextureRepository.Texture emissiveTexture = TextureRepository.GetTexture(emissivePath);
+                        if (emissiveTexture != null) {
+                            mats[i].emissiveTex = emissiveTexture.tex;
+                            TextureRepository.addRef(emissivePath);
+                            texKeys.add(emissivePath);
+                        }
                     }
                 }
             }

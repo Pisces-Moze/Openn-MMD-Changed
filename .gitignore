@@ -23,6 +23,8 @@ run
 rust_engine/target/
 .tmp-mmd-native-extract/
 .tools/
+**/__pycache__/
+tools/**/target/
 
 # Files from Forge MDK
 forge*changelog.txt

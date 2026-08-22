@@ -17,13 +17,38 @@ public class ModelMaterial {
     public String name = "";
     public String texturePath = "";
     public boolean ownsTexture = false;
+    public boolean lilUseShadow = true;
+    public float lilShadowBorder = 0.52f;
+    public float lilShadowBlur = 0.075f;
+    public final float[] lilShadowColor = {0.78f, 0.84f, 0.94f};
+    public boolean lilUseRim = true;
+    public float lilRimBorder = 0.70f;
+    public float lilRimBlur = 0.20f;
+    public float lilRimPower = 5.6f;
+    public float lilRimIntensity = 0.02f;
+    public final float[] lilRimColor = {0.30f, 0.78f, 0.92f};
+    public boolean lilUseMatCap = false;
+    public float lilMatCapStrength = 0.0f;
+    public boolean lilUseEmission = true;
+    public float lilEmissionStrength = -1.0f;
+    public String lilEmissionTexture = "";
+    public String lilNormalTexture = "";
+    public float lilNormalScale = 1.0f;
+    public String lilCull = "model";
+    public String lilRenderMode = "model";
+    public float lilAlphaCutoff = 0.1f;
+    public boolean lilUseOutline = true;
+    public float lilOutlineWidth = -1.0f;
 
     public boolean hasEmission() {
         return emissiveTex > 0;
     }
 
     public float emissionStrength() {
-        return isFacialFeature() ? 0.82f : 0.62f;
+        if (!lilUseEmission) return 0.0f;
+        return lilEmissionStrength >= 0.0f
+                ? lilEmissionStrength
+                : (isFacialFeature() ? 0.82f : 0.62f);
     }
 
     public float unlitStrength() {
@@ -32,10 +57,42 @@ public class ModelMaterial {
 
     /** Material-name profile used by the lilToon compatibility renderer. */
     public float matCapStrength() {
-        if (isFacialFeature()) return 0.035f;
-        if (containsAny(name, texturePath, "hair", "髪", "头发", "ヘア")) return 0.22f;
-        if (containsAny(name, texturePath, "cloth", "dress", "衣", "服")) return 0.12f;
-        return 0.075f;
+        return lilUseMatCap ? lilMatCapStrength : 0.0f;
+    }
+
+    public void applyLilToonProfile(LilToonMaterialConfig.MaterialProfile p) {
+        if (p.useShadow != null) lilUseShadow = p.useShadow;
+        if (p.shadowBorder != null) lilShadowBorder = p.shadowBorder;
+        if (p.shadowBlur != null) lilShadowBlur = p.shadowBlur;
+        copyRgb(p.shadowColor, lilShadowColor);
+        if (p.useRim != null) lilUseRim = p.useRim;
+        if (p.rimBorder != null) lilRimBorder = p.rimBorder;
+        if (p.rimBlur != null) lilRimBlur = p.rimBlur;
+        if (p.rimFresnelPower != null) lilRimPower = p.rimFresnelPower;
+        if (p.rimIntensity != null) lilRimIntensity = p.rimIntensity;
+        copyRgb(p.rimColor, lilRimColor);
+        if (p.useMatCap != null) lilUseMatCap = p.useMatCap;
+        if (p.matCapStrength != null) lilMatCapStrength = p.matCapStrength;
+        if (p.useEmission != null) lilUseEmission = p.useEmission;
+        if (p.emissionStrength != null) lilEmissionStrength = p.emissionStrength;
+        if (p.emissionTexture != null) lilEmissionTexture = p.emissionTexture;
+        if (p.normalTexture != null) lilNormalTexture = p.normalTexture;
+        if (p.normalScale != null) lilNormalScale = p.normalScale;
+        if (p.cull != null) lilCull = p.cull;
+        if (p.renderMode != null) lilRenderMode = p.renderMode;
+        if (p.alphaCutoff != null) lilAlphaCutoff = p.alphaCutoff;
+        if (p.useOutline != null) lilUseOutline = p.useOutline;
+        if (p.outlineWidth != null) lilOutlineWidth = p.outlineWidth;
+    }
+
+    public String configuredEmissionPath(String modelDir) {
+        if (lilEmissionTexture == null || lilEmissionTexture.isBlank()) return "";
+        return java.nio.file.Path.of(modelDir, lilEmissionTexture).toString();
+    }
+
+    private static void copyRgb(float[] source, float[] target) {
+        if (source == null || source.length < 3) return;
+        target[0] = source[0]; target[1] = source[1]; target[2] = source[2];
     }
 
     public static String emissionTexturePath(String baseTexturePath) {

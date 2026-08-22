@@ -57,6 +57,46 @@ unlit、青色荧光识别和受伤变红。MatCap 强度按 PMX 材质名/贴�
 AudioLink、距离淡出、宝石/毛发专用 pass 和 Unity 光照探针。它们需要按
 Minecraft 的资源及绘制生命周期逐项移植。
 
+## Unity prefab 通用导入器
+
+`tools/import_unity_liltoon.py` 会以只读方式扫描 Unity 的 `Assets` 目录，建立
+`.meta` GUID 索引，递归解析 prefab 引用，并读取 lilToon `.mat` 参数。它不会
+修改 Unity 工程，只会在指定的 MMD 模型目录生成：
+
+- `liltoon_materials.json`
+- 材质实际启用的 emission 贴图副本
+- 材质实际启用的 normal 贴图副本
+
+通用用法：
+
+```powershell
+python tools/import_unity_liltoon.py `
+  --unity-assets "D:\UnityProject\Assets" `
+  --prefab "D:\UnityProject\Assets\Avatar\Avatar.prefab" `
+  --output "D:\MmdModelDirectory"
+```
+
+如果一个 prefab 包含衣服、道具和多个换色版本，可以限定当前材质目录：
+
+```powershell
+python tools/import_unity_liltoon.py `
+  --unity-assets "D:\UnityProject\Assets" `
+  --prefab "D:\UnityProject\Assets\Avatar\Avatar.prefab" `
+  --material-dir "D:\UnityProject\Assets\Avatar\Materials\Blue" `
+  --material-dir-only `
+  --output "D:\MmdModelDirectory"
+```
+
+已有输出默认不会被覆盖；确认更新时显式添加 `--force`。如果 Unity 材质名与
+PMX 材质名不同，在生成的 JSON 对应材质的 `aliases` 数组中填写 PMX 名称。
+
+运行时会按“PMX 材质名 -> aliases -> 主贴图文件名”依次匹配配置。没有配置文件
+的旧模型继续使用兼容默认值，不需要重新导入。
+
+当前运行时已使用每材质的 Shadow、Rim、MatCap 开关和精确 emission 贴图。
+Normal 贴图已经导入和记录，但必须等渲染器增加 tangent/bitangent 通道后才能
+安全启用。
+
 ## 安全原则
 
 1. 新渲染器先以可关闭的实验后端接入，默认不替换稳定后端。

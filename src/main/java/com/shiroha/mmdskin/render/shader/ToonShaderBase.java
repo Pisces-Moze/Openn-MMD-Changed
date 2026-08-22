@@ -46,6 +46,10 @@ public abstract class ToonShaderBase {
     protected int matCapStrengthLocation = -1;
     protected int rimColorLocation = -1;
     protected int hurtFactorLocation = -1;
+    protected int useShadowLocation = -1;
+    protected int useRimLocation = -1;
+    protected int rimBorderLocation = -1;
+    protected int rimBlurLocation = -1;
 
     protected int outlineProjMatLocation = -1;
     protected int outlineModelViewMatLocation = -1;
@@ -122,6 +126,10 @@ public abstract class ToonShaderBase {
         matCapStrengthLocation = GL46C.glGetUniformLocation(mainProgram, "MatCapStrength");
         rimColorLocation = GL46C.glGetUniformLocation(mainProgram, "RimColor");
         hurtFactorLocation = GL46C.glGetUniformLocation(mainProgram, "HurtFactor");
+        useShadowLocation = GL46C.glGetUniformLocation(mainProgram, "UseShadow");
+        useRimLocation = GL46C.glGetUniformLocation(mainProgram, "UseRim");
+        rimBorderLocation = GL46C.glGetUniformLocation(mainProgram, "RimBorder");
+        rimBlurLocation = GL46C.glGetUniformLocation(mainProgram, "RimBlur");
 
         outlineProjMatLocation = GL46C.glGetUniformLocation(outlineProgram, "ProjMat");
         outlineModelViewMatLocation = GL46C.glGetUniformLocation(outlineProgram, "ModelViewMat");
@@ -235,11 +243,24 @@ public abstract class ToonShaderBase {
         }
     }
 
-    public void setLilToonMaterial(float unlit, float emission, float matCapStrength) {
+    public void setLilToonMaterial(float unlit, float emission, float matCapStrength,
+                                   boolean useShadow, float shadowBorder, float shadowBlur,
+                                   float shadowR, float shadowG, float shadowB,
+                                   boolean useRim, float rimBorder, float rimBlur,
+                                   float rimPower, float rimIntensity,
+                                   float rimR, float rimG, float rimB) {
         setMaterialLighting(unlit, emission);
-        if (matCapStrengthLocation >= 0) {
-            GL46C.glUniform1f(matCapStrengthLocation, matCapStrength);
-        }
+        if (matCapStrengthLocation >= 0) GL46C.glUniform1f(matCapStrengthLocation, matCapStrength);
+        if (useShadowLocation >= 0) GL46C.glUniform1i(useShadowLocation, useShadow ? 1 : 0);
+        if (shadowBorderLocation >= 0) GL46C.glUniform1f(shadowBorderLocation, shadowBorder);
+        if (shadowBlurLocation >= 0) GL46C.glUniform1f(shadowBlurLocation, shadowBlur);
+        if (shadowColorLocation >= 0) GL46C.glUniform3f(shadowColorLocation, shadowR, shadowG, shadowB);
+        if (useRimLocation >= 0) GL46C.glUniform1i(useRimLocation, useRim ? 1 : 0);
+        if (rimBorderLocation >= 0) GL46C.glUniform1f(rimBorderLocation, rimBorder);
+        if (rimBlurLocation >= 0) GL46C.glUniform1f(rimBlurLocation, rimBlur);
+        if (rimPowerLocation >= 0) GL46C.glUniform1f(rimPowerLocation, rimPower);
+        if (rimIntensityLocation >= 0) GL46C.glUniform1f(rimIntensityLocation, rimIntensity);
+        if (rimColorLocation >= 0) GL46C.glUniform3f(rimColorLocation, rimR, rimG, rimB);
     }
 
     public void setLilToonStyle(float shadowBorder, float shadowBlur, float matCapStrength,

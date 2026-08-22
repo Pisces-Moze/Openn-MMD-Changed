@@ -6,6 +6,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.shiroha.mmdskin.bridge.runtime.NativeRenderBackendPort;
 import com.shiroha.mmdskin.render.backend.BaseModelInstance;
 import com.shiroha.mmdskin.render.material.ModelMaterial;
+import com.shiroha.mmdskin.render.material.LilToonMaterialConfig;
 import com.shiroha.mmdskin.render.shader.ShaderConstants;
 import com.shiroha.mmdskin.render.shader.SkinningComputeShader;
 import com.shiroha.mmdskin.render.shader.ToonConfig;
@@ -286,12 +287,14 @@ public class GpuSkinningModelInstance extends BaseModelInstance {
             GL46C.glBindBuffer(GL46C.GL_ARRAY_BUFFER, uv2Vbo);
             GL46C.glBufferData(GL46C.GL_ARRAY_BUFFER, vertexCount * 8, GL46C.GL_DYNAMIC_DRAW);
 
+            LilToonMaterialConfig lilToonConfig = LilToonMaterialConfig.load(modelDir);
             ModelMaterial[] mats = new ModelMaterial[nativeBackend.getMaterialCount(model)];
             for (int i = 0; i < mats.length; ++i) {
                 mats[i] = new ModelMaterial();
                 mats[i].name = nativeBackend.getMaterialName(model, i);
                 String texFilename = nativeBackend.getMaterialTexturePath(model, i);
                 mats[i].texturePath = texFilename != null ? texFilename : "";
+                lilToonConfig.apply(mats[i]);
                 if (texFilename != null && !texFilename.isEmpty()) {
                     TextureRepository.Texture managerTexture = TextureRepository.GetTexture(texFilename);
                     if (managerTexture != null) {
@@ -310,12 +313,17 @@ public class GpuSkinningModelInstance extends BaseModelInstance {
                             textureKeys.add(eyePath);
                         }
                     }
-                    String emissivePath = ModelMaterial.emissionTexturePath(texFilename);
-                    TextureRepository.Texture emissiveTexture = TextureRepository.GetTexture(emissivePath);
-                    if (emissiveTexture != null) {
-                        mats[i].emissiveTex = emissiveTexture.tex;
-                        TextureRepository.addRef(emissivePath);
-                        textureKeys.add(emissivePath);
+                    if (mats[i].lilUseEmission) {
+                        String configuredEmission = mats[i].configuredEmissionPath(modelDir);
+                        String emissivePath = configuredEmission.isEmpty()
+                                ? ModelMaterial.emissionTexturePath(texFilename)
+                                : configuredEmission;
+                        TextureRepository.Texture emissiveTexture = TextureRepository.GetTexture(emissivePath);
+                        if (emissiveTexture != null) {
+                            mats[i].emissiveTex = emissiveTexture.tex;
+                            TextureRepository.addRef(emissivePath);
+                            textureKeys.add(emissivePath);
+                        }
                     }
                 }
             }

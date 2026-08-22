@@ -24,6 +24,10 @@ uniform float ShadowBlur;
 uniform float MatCapStrength;
 uniform vec3 RimColor;
 uniform float HurtFactor;
+uniform int UseShadow;
+uniform int UseRim;
+uniform float RimBorder;
+uniform float RimBlur;
 
 layout(location = 0) out vec4 fragColor;
 
@@ -53,7 +57,9 @@ void main() {
     // preserves the authored blue/green body colour in both daylight and night.
     float border = clamp(ShadowBorder, 0.02, 0.98);
     float blur = max(ShadowBlur, 0.002);
-    float shadowStep = smoothstep(border - blur, border + blur, ndl);
+    float shadowStep = UseShadow != 0
+            ? smoothstep(border - blur, border + blur, ndl)
+            : 1.0;
     vec3 shadowed = albedo * clamp(ShadowColor, vec3(0.0), vec3(1.0));
     vec3 toonColor = mix(shadowed, albedo, shadowStep);
 
@@ -75,7 +81,11 @@ void main() {
     color += vec3(0.82, 0.94, 1.0) * specBand * SpecularIntensity;
 
     float fresnel = pow(1.0 - saturate(dot(n, v)), max(RimPower, 0.5));
-    float rim = smoothstep(0.18, 0.72, fresnel) * RimIntensity;
+    float rimEdge = smoothstep(
+            clamp(RimBorder - RimBlur, 0.0, 1.0),
+            clamp(RimBorder + RimBlur, 0.001, 1.0),
+            fresnel);
+    float rim = (UseRim != 0 ? rimEdge : 0.0) * RimIntensity;
     color += RimColor * rim;
 
     // Emission is additive and independent of world darkness, matching the

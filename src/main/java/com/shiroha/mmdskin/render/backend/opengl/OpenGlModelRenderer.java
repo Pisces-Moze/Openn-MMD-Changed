@@ -650,8 +650,7 @@ final class OpenGlModelRenderer {
                 materialId -> !target.mats[materialId].isFacialFeature(),
                 materialId -> {
                     ModelMaterial material = target.mats[materialId];
-                    OpenGlModelInstance.toonShaderCpu.setLilToonMaterial(
-                            material.unlitStrength(), 0.0f, material.matCapStrength());
+                    applyLilToonMaterial(OpenGlModelInstance.toonShaderCpu, material);
                 });
         SubMeshDrawHelper.draw(
                 target.subMeshDataBuf,
@@ -663,8 +662,7 @@ final class OpenGlModelRenderer {
                 materialId -> target.mats[materialId].isFacialFeature(),
                 materialId -> {
                     ModelMaterial material = target.mats[materialId];
-                    OpenGlModelInstance.toonShaderCpu.setLilToonMaterial(
-                            material.unlitStrength(), 0.0f, material.matCapStrength());
+                    applyLilToonMaterial(OpenGlModelInstance.toonShaderCpu, material);
                 });
     }
 
@@ -677,6 +675,14 @@ final class OpenGlModelRenderer {
             return 0.0f;
         }
         return target.effectiveMaterialAlpha(materialId, baseAlpha);
+    }
+
+    private static void applyLilToonMaterial(ToonShaderCpu shader, ModelMaterial m) {
+        shader.setLilToonMaterial(m.unlitStrength(), 0.0f, m.matCapStrength(),
+                m.lilUseShadow, m.lilShadowBorder, m.lilShadowBlur,
+                m.lilShadowColor[0], m.lilShadowColor[1], m.lilShadowColor[2],
+                m.lilUseRim, m.lilRimBorder, m.lilRimBlur, m.lilRimPower, m.lilRimIntensity,
+                m.lilRimColor[0], m.lilRimColor[1], m.lilRimColor[2]);
     }
 }
 
