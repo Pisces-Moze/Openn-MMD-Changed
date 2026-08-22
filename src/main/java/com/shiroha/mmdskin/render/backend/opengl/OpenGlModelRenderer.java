@@ -12,6 +12,7 @@ import com.shiroha.mmdskin.render.shader.ToonRenderHelper;
 import com.shiroha.mmdskin.render.shader.FullbrightLayerShader;
 import com.shiroha.mmdskin.render.pipeline.LightingHelper;
 import com.shiroha.mmdskin.render.pipeline.RenderPerformanceProfiler;
+import com.shiroha.mmdskin.render.pipeline.OpenGlStateSnapshot;
 import com.shiroha.mmdskin.render.material.ModelMaterial;
 import com.shiroha.mmdskin.render.material.SubMeshDrawHelper;
 import net.minecraft.client.Minecraft;
@@ -38,6 +39,8 @@ final class OpenGlModelRenderer {
         if (IrisCompat.isRenderingShadows()) {
             return;
         }
+        OpenGlStateSnapshot glState = OpenGlStateSnapshot.capture();
+        try {
         Minecraft minecraft = Minecraft.getInstance();
         LightingHelper.LightData light = LightingHelper.sampleLight(entityIn, minecraft);
         var workingQuat = target.workingQuaternion();
@@ -67,7 +70,7 @@ final class OpenGlModelRenderer {
 
         // Preserve the shader pack's entity/shadow program so MMD meshes can
         // cast and receive Iris shadows instead of bypassing its shadow buffers.
-        boolean useToon = !IrisCompat.isIrisShaderActive() && initializeToonShaderIfNeeded();
+        boolean useToon = initializeToonShaderIfNeeded();
         boolean hurt = entityIn instanceof LivingEntity living && living.hurtTime > 0;
         if (useToon) {
             long drawTimer = RenderPerformanceProfiler.get().startTimer();
@@ -84,6 +87,9 @@ final class OpenGlModelRenderer {
             renderStandard(target, minecraft, light, deliverStack, hurt);
         } finally {
             RenderPerformanceProfiler.get().endTimer(RenderPerformanceProfiler.SECTION_DRAW, drawTimer);
+        }
+        } finally {
+            glState.restore();
         }
     }
 

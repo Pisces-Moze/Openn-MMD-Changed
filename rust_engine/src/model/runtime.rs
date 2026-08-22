@@ -10,7 +10,7 @@ use crate::vrm_runtime::{
     resolve_tracking_frame_for_model, vivecraft_body_tracking_calibration,
     vrm_controller_hand_tracking_calibration, ArmIkCalibration, BodyTrackingCalibration,
     HandTrackingCalibration, TrackedPose, VrmModelRuntimeState, VrmRuntimeInput, VrmRuntimeOutput,
-    VrmTrackingInput,
+    VrmTrackingInput, SpringBoneRuntime,
 };
 use glam::{Mat4, Quat, Vec2, Vec3, Vec4};
 use rayon::prelude::*;
@@ -19,7 +19,7 @@ use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use super::VrmExtensions;
-use super::{MmdMaterial, RuntimeVertex, SubMesh, VertexWeight};
+use super::{MmdMaterial, RuntimeVertex, SpringBoneData, SpringBoneJoint, SpringBoneSpring, SubMesh, VertexWeight};
 
 thread_local! {
     /// 线程局部 PRNG 状态（xorshift32），避免多线程竞态
@@ -126,6 +126,7 @@ pub struct MmdModel {
     physics_enabled: bool,
     /// 骨骼变换缓冲区（避免每帧堆分配）
     physics_bone_transforms_buf: Vec<Mat4>,
+    secondary_spring: Option<SpringBoneRuntime>,
 
     // 材质可见性控制（用于脱外套等功能）
     material_visible: Vec<bool>,
@@ -271,6 +272,7 @@ impl MmdModel {
             physics: None,
             physics_enabled: false,
             physics_bone_transforms_buf: Vec::new(),
+            secondary_spring: None,
             material_visible: Vec::new(),
             user_material_visible: Vec::new(),
             bone_indices: Vec::new(),
@@ -2299,6 +2301,15 @@ impl MmdModel {
             runtime_state.process_post_ik(model, elapsed);
         });
 
+        if !self.is_vrm && self.physics.is_none() && self.physics_enabled
+            && crate::physics::config::get_config().enabled
+        {
+            if let Some(mut spring) = self.secondary_spring.take() {
+                spring.process(&mut self.bone_manager, elapsed.min(1.0 / 15.0));
+                self.secondary_spring = Some(spring);
+            }
+        }
+
         let physics_enabled = !self.is_vrm && self.physics_enabled && self.physics.is_some();
         if physics_enabled {
             self.update_physics(elapsed);
@@ -2336,8 +2347,8 @@ impl MmdModel {
 
     pub fn init_physics(&mut self) -> bool {
         if self.rigid_bodies.is_empty() {
-            log::debug!("模型没有刚体数据，跳过物理初始化");
-            return false;
+            self.init_secondary_spring_fallback();
+            return self.secondary_spring.is_some();
         }
 
         let mut physics = match MMDPhysics::new() {
@@ -2366,6 +2377,55 @@ impl MmdModel {
         self.physics = Some(physics);
         self.physics_enabled = true;
         true
+    }
+
+    fn init_secondary_spring_fallback(&mut self) {
+        if self.secondary_spring.is_some() || self.bone_manager.bone_count() == 0 { return; }
+        fn category(name: &str) -> Option<u8> {
+            let n = name.to_lowercase();
+            if ["tail", "尾"].iter().any(|t| n.contains(t)) { return Some(1); }
+            if ["ear", "耳"].iter().any(|t| n.contains(t)) { return Some(2); }
+            if ["hair", "髪", "发", "髮"].iter().any(|t| n.contains(t)) { return Some(3); }
+            if ["ribbon", "リボン", "skirt", "スカート", "cape", "cloth", "phys", "spring"]
+                .iter().any(|t| n.contains(t)) { return Some(4); }
+            None
+        }
+        let count = self.bone_manager.bone_count();
+        let kinds = (0..count).map(|i| self.bone_manager.get_bone(i)
+            .and_then(|b| category(&b.name))).collect::<Vec<_>>();
+        let mut springs = Vec::new();
+        for root in 0..count {
+            let Some(kind) = kinds[root] else { continue; };
+            let parent = self.bone_manager.get_bone(root).map(|b| b.parent_index).unwrap_or(-1);
+            if parent >= 0 && kinds.get(parent as usize).copied().flatten() == Some(kind) { continue; }
+            let mut nodes = Vec::new();
+            let mut current = root;
+            loop {
+                nodes.push(current);
+                let next = self.bone_manager.children_of(current).iter().copied()
+                    .find(|child| kinds.get(*child).copied().flatten() == Some(kind));
+                let Some(next) = next else { break; };
+                current = next;
+            }
+            if nodes.len() < 2 { continue; }
+            let (stiffness, gravity_power, drag_force) = match kind {
+                1 => (0.72, 0.018, 0.18), 2 => (0.82, 0.010, 0.24),
+                3 => (0.62, 0.025, 0.30), _ => (0.58, 0.032, 0.34),
+            };
+            let joints = nodes.into_iter().map(|node| SpringBoneJoint {
+                node, hit_radius: 0.015, stiffness, gravity_power,
+                gravity_dir: [0.0, -1.0, 0.0], drag_force,
+            }).collect();
+            springs.push(SpringBoneSpring { joints, collider_groups: Vec::new(),
+                center: (parent >= 0).then_some(parent as usize) });
+        }
+        if springs.is_empty() { return; }
+        let chain_count = springs.len();
+        self.secondary_spring = Some(SpringBoneRuntime::new(
+            SpringBoneData { springs, colliders: Vec::new(), collider_groups: Vec::new() },
+            &self.bone_manager));
+        self.physics_enabled = true;
+        log::info!("initialized generic secondary spring physics: {} chains", chain_count);
     }
 
     /// 重置物理系统

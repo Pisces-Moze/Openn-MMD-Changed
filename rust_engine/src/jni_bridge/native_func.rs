@@ -127,8 +127,8 @@ pub extern "system" fn Java_com_shiroha_mmdskin_NativeFunc_LoadModelPMX(
                     model.rigid_bodies.len(),
                     model.joints.len()
                 );
-                model.init_physics();
             }
+            model.init_physics();
             register_model(model)
         }
         Err(e) => {
