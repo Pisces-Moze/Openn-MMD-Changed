@@ -48,10 +48,10 @@ Unity 的 ShaderLab 编译器、宏、灯光结构、摄像机变量与材质序
 启用原有 Toon Rendering 开关时，CPU/OpenGL 与 GPU skinning 后端都会实例化
 `LilToonShaderCpu`。初始化失败时仍沿用现有标准渲染回退机制。
 
-当前已经实现卡通阴影边界、稳定基础色、程序化 MatCap、边缘光、分材质
-unlit、青色荧光识别和受伤变红。MatCap 强度按 PMX 材质名/贴图名自动分组：
-头发较强、衣服中等、身体较弱、面部最弱。独立 `_emi.png` 发光贴图仍由
-现有 fullbright pass 负责。
+当前已经实现卡通阴影边界、环境明暗、程序化 MatCap、边缘光、分材质
+unlit、显式启用的青色荧光、独立发光贴图和受伤变红。普通材质会随 Minecraft
+环境变暗；只有 `emissionTexture` 和非零 `cyanEmissionStrength` 产生全亮效果。
+发光贴图使用加法混合，因此 Unity 常见的不透明黑底不会覆盖基础颜色。
 
 尚未实现的 Unity 专属功能包括多层 Main2nd/Main3rd、法线贴图、各向异性、
 AudioLink、距离淡出、宝石/毛发专用 pass 和 Unity 光照探针。它们需要按
@@ -96,6 +96,67 @@ PMX 材质名不同，在生成的 JSON 对应材质的 `aliases` 数组中填�
 当前运行时已使用每材质的 Shadow、Rim、MatCap 开关和精确 emission 贴图。
 Normal 贴图已经导入和记录，但必须等渲染器增加 tangent/bitangent 通道后才能
 安全启用。
+
+### 导入命令与文件安全
+
+导入器只读取 `--unity-assets` 和 `--prefab`，不会改写 Unity 工程。输出目录必须
+放在本分支的模型资源目录或独立工作目录，不要指向 Unity 的 `Assets`：
+
+```powershell
+python tools/import_unity_liltoon.py `
+  --unity-assets "F:\UnityProject\Assets" `
+  --prefab "F:\UnityProject\Assets\Avatar\Prefab\Avatar.prefab" `
+  --material-dir "F:\UnityProject\Assets\Avatar\Materials\Blue" `
+  --material-dir-only `
+  --output "src\main\resources\assets\openmmdchanged\mmd\avatar_id" `
+  --force
+```
+
+导入完成后，把新增 PNG 和 `liltoon_materials.json` 全部加入同目录的
+`assets.list`。启动游戏后检查日志中的 `Loaded ... lilToon material profiles`；
+没有这条日志通常表示文件未安装、JSON 格式错误或模型文件夹名不一致。
+
+### `liltoon_materials.json` 参数
+
+| 参数 | 作用 | 当前兼容情况 |
+| --- | --- | --- |
+| `aliases` | PMX 材质名与 Unity 材质名不同时的别名 | 完整 |
+| `useShadow` / `shadowBorder` / `shadowBlur` / `shadowColor` | 卡通阴影及软边 | 近似 |
+| `useRim` / `rimBorder` / `rimBlur` / `rimFresnelPower` / `rimIntensity` / `rimColor` | 边缘光 | 近似 |
+| `useMatCap` / `matCapStrength` | 视图空间程序化高光 | 近似；尚不采样 Unity MatCap 图 |
+| `useEmission` / `emissionTexture` / `emissionStrength` | 独立全亮发光图层 | 支持，加法混合 |
+| `cyanEmissionStrength` | 从该材质基础贴图中仅提取高饱和青色作为荧光蒙版 | Minecraft 扩展；默认 `0` |
+| `normalTexture` / `normalScale` | 法线贴图记录 | 已导入，尚未渲染 |
+| `cull` / `renderMode` / `alphaCutoff` | 剔除、透明模式、裁剪 | 部分兼容，复杂透明排序仍有限制 |
+| `useOutline` / `outlineWidth` / `outlineColor` | 描边 | 基础支持；面部材质自动排除 |
+
+`cyanEmissionStrength` 推荐范围为 `0.3`～`1.0`。它必须按材质显式开启，不会对
+整个模型全局扫描。例如：
+
+```json
+"Body": {
+  "useEmission": true,
+  "emissionTexture": "liltoon_Body_emission.png",
+  "emissionStrength": 1.0,
+  "cyanEmissionStrength": 0.8
+}
+```
+
+### 发光层处理规则
+
+1. 优先使用 Unity 材质实际引用的 `_EmissionMap`，导入器会复制为
+   `liltoon_<材质名>_emission.png`。
+2. 发光图中黑色代表“不增加光”，不要求 Alpha 透明；渲染器使用加法混合。
+3. 不要把发光结果烘焙回 Base Color，否则白天基础色会变浅。
+4. 只有青色涂层需要发光而 Unity 没有单独蒙版时，对该材质设置
+   `cyanEmissionStrength`；不要给头发、衣服等无关材质开启。
+5. `emissionStrength` 控制独立发光图强度，`cyanEmissionStrength` 只控制青色
+   涂层，两者互不替代。
+6. 发光是视觉全亮，不会像火把一样照亮方块和周围实体。
+
+当前不会复刻 AudioLink、Main2nd/Main3rd、Glitter、Dissolve、各向异性、
+Unity 光照探针和完整透明队列。导入器保留通用材质结构，但这些效果需要另行
+烘焙到贴图或继续扩展 GLSL。
 
 ## 安全原则
 

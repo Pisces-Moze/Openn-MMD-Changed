@@ -31,6 +31,7 @@ public class ModelMaterial {
     public float lilMatCapStrength = 0.0f;
     public boolean lilUseEmission = true;
     public float lilEmissionStrength = -1.0f;
+    public float lilCyanEmissionStrength = 0.0f;
     public String lilEmissionTexture = "";
     public String lilNormalTexture = "";
     public float lilNormalScale = 1.0f;
@@ -75,6 +76,7 @@ public class ModelMaterial {
         if (p.matCapStrength != null) lilMatCapStrength = p.matCapStrength;
         if (p.useEmission != null) lilUseEmission = p.useEmission;
         if (p.emissionStrength != null) lilEmissionStrength = p.emissionStrength;
+        if (p.cyanEmissionStrength != null) lilCyanEmissionStrength = Math.max(0.0f, p.cyanEmissionStrength);
         if (p.emissionTexture != null) lilEmissionTexture = p.emissionTexture;
         if (p.normalTexture != null) lilNormalTexture = p.normalTexture;
         if (p.normalScale != null) lilNormalScale = p.normalScale;
