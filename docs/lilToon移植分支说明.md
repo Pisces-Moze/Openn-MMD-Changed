@@ -175,7 +175,11 @@ python tools/import_unity_liltoon.py `
 - `maskMode: texture`：完全相信独立蒙版；黑色/透明区域不发光。
 - `maskMode: cyan`：只保留明亮、高饱和且接近青色的像素。
 - `maskMode: color`：使用 `maskColor: [r,g,b]` 筛选任意目标颜色。
-- `maskTolerance`、`minBrightness`、`minSaturation` 控制筛选范围。
+- `maskTolerance`、`minBrightness`、`maxBrightness`、`minSaturation` 控制筛选范围。
+- `uvRects`：可选的归一化 UV 矩形数组，每项为 `[minU,minV,maxU,maxV]`；用于同色
+  区域只有一部分应发光的模型，不能用来替代正确的独立蒙版。
+- `preserveSourceColor: false`：把筛选结果转为白色蒙版，最终发光色由该层 `color`
+  决定；默认 `true`，保留源贴图颜色。
 
 颜色筛选适合迁移阶段和色块清晰的贴图；正式发布仍优先手绘独立蒙版，这与 Changed
 原版 `EmissiveBodyLayer + RenderType.eyes` 的资源组织方式一致。

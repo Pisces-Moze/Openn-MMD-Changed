@@ -136,7 +136,10 @@ public class ModelMaterial {
         public final float[] maskColor = {0.0f, 1.0f, 1.0f};
         public final float maskTolerance;
         public final float minBrightness;
+        public final float maxBrightness;
         public final float minSaturation;
+        public final List<float[]> uvRects = new ArrayList<>();
+        public final boolean preserveSourceColor;
 
         private EmissionLayerDefinition(LilToonMaterialConfig.EmissionLayerProfile source) {
             texture = source.texture == null ? "$base" : source.texture;
@@ -146,7 +149,14 @@ public class ModelMaterial {
             copyRgb(source.maskColor, maskColor);
             maskTolerance = clamp01(source.maskTolerance == null ? 0.5f : source.maskTolerance);
             minBrightness = clamp01(source.minBrightness == null ? 0.45f : source.minBrightness);
+            maxBrightness = clamp01(source.maxBrightness == null ? 1.0f : source.maxBrightness);
             minSaturation = clamp01(source.minSaturation == null ? 0.25f : source.minSaturation);
+            if (source.uvRects != null) {
+                for (float[] rect : source.uvRects) {
+                    if (rect != null && rect.length >= 4) uvRects.add(rect.clone());
+                }
+            }
+            preserveSourceColor = source.preserveSourceColor == null || source.preserveSourceColor;
         }
     }
 

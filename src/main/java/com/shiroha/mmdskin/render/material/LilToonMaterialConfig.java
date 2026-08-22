@@ -137,6 +137,11 @@ public final class LilToonMaterialConfig {
         public float[] maskColor = {0.0f, 1.0f, 1.0f};
         public Float maskTolerance = 0.5f;
         public Float minBrightness = 0.45f;
+        public Float maxBrightness = 1.0f;
         public Float minSaturation = 0.25f;
+        /** Optional normalized [minU,minV,maxU,maxV] source-image regions. */
+        public List<float[]> uvRects = List.of();
+        /** False turns accepted mask pixels white so color controls the emitted hue. */
+        public Boolean preserveSourceColor = true;
     }
 }

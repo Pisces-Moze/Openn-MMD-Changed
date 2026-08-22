@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.DynamicTexture;
@@ -21,13 +22,16 @@ public final class MinecraftTextureRegistry {
     private MinecraftTextureRegistry() {}
 
     public static ResourceLocation get(String filename, String modelDirectory) {
-        return getFiltered(filename, modelDirectory, "texture", null, 0.0f, 0.0f, 0.0f);
+        return getFiltered(filename, modelDirectory, "texture", null,
+                0.0f, 0.0f, 1.0f, 0.0f, List.of(), true);
     }
 
     public static ResourceLocation getFiltered(String filename, String modelDirectory,
                                                String maskMode, float[] maskColor,
                                                float tolerance, float minBrightness,
-                                               float minSaturation) {
+                                               float maxBrightness, float minSaturation,
+                                               List<float[]> uvRects,
+                                               boolean preserveSourceColor) {
         if (filename == null || filename.isBlank()) return null;
         try {
             Path path = Path.of(filename);
@@ -38,8 +42,11 @@ public final class MinecraftTextureRegistry {
             String mode = maskMode == null ? "texture" : maskMode.trim().toLowerCase();
             String key = resolved + "|" + mode + "|" + Arrays.toString(maskColor)
                     + "|" + tolerance + "|" + minBrightness + "|" + minSaturation;
+            key += "|" + maxBrightness + "|" + rectKey(uvRects)
+                    + "|" + preserveSourceColor;
             return CACHE.computeIfAbsent(key, ignored -> load(resolved, mode, maskColor,
-                    tolerance, minBrightness, minSaturation));
+                    tolerance, minBrightness, maxBrightness, minSaturation,
+                    uvRects, preserveSourceColor));
         } catch (RuntimeException exception) {
             LOGGER.warn("Invalid PMX texture path: {}", filename);
             return null;
@@ -48,12 +55,15 @@ public final class MinecraftTextureRegistry {
 
     private static ResourceLocation load(String filename, String maskMode, float[] maskColor,
                                          float tolerance, float minBrightness,
-                                         float minSaturation) {
+                                         float maxBrightness, float minSaturation,
+                                         List<float[]> uvRects,
+                                         boolean preserveSourceColor) {
         try (InputStream stream = Files.newInputStream(Path.of(filename))) {
             NativeImage image = NativeImage.read(stream);
             if (!"texture".equals(maskMode) && !"none".equals(maskMode)) {
                 filterEmission(image, maskMode, maskColor, tolerance,
-                        minBrightness, minSaturation);
+                        minBrightness, maxBrightness, minSaturation,
+                        uvRects, preserveSourceColor);
             }
             DynamicTexture texture = new DynamicTexture(image);
             return Minecraft.getInstance().getTextureManager().register(
@@ -66,7 +76,9 @@ public final class MinecraftTextureRegistry {
 
     private static void filterEmission(NativeImage image, String mode, float[] requestedColor,
                                        float tolerance, float minBrightness,
-                                       float minSaturation) {
+                                       float maxBrightness, float minSaturation,
+                                       List<float[]> uvRects,
+                                       boolean preserveSourceColor) {
         float[] target = "cyan".equals(mode)
                 ? new float[] {0.0f, 1.0f, 1.0f}
                 : normalizedColor(requestedColor);
@@ -74,6 +86,8 @@ public final class MinecraftTextureRegistry {
         for (int y = 0; y < image.getHeight(); y++) {
             for (int x = 0; x < image.getWidth(); x++) {
                 int pixel = image.getPixelRGBA(x, y);
+                float u = (x + 0.5f) / image.getWidth();
+                float v = (y + 0.5f) / image.getHeight();
                 int red = pixel & 0xff;
                 int green = (pixel >>> 8) & 0xff;
                 int blue = (pixel >>> 16) & 0xff;
@@ -87,9 +101,12 @@ public final class MinecraftTextureRegistry {
                 float nb = blue / scale;
                 float distance = (float) Math.sqrt(square(nr - target[0])
                         + square(ng - target[1]) + square(nb - target[2]));
-                if (alpha == 0 || max < minBrightness || saturation < minSaturation
+                if (!insideAny(u, v, uvRects) || alpha == 0 || max < minBrightness
+                        || max > maxBrightness || saturation < minSaturation
                         || distance > allowedDistance) {
                     image.setPixelRGBA(x, y, 0);
+                } else if (!preserveSourceColor) {
+                    image.setPixelRGBA(x, y, 0xffffffff);
                 }
             }
         }
@@ -103,5 +120,21 @@ public final class MinecraftTextureRegistry {
 
     private static float square(float value) {
         return value * value;
+    }
+
+    private static boolean insideAny(float u, float v, List<float[]> rects) {
+        if (rects == null || rects.isEmpty()) return true;
+        for (float[] rect : rects) {
+            if (rect != null && rect.length >= 4 && u >= rect[0] && u <= rect[2]
+                    && v >= rect[1] && v <= rect[3]) return true;
+        }
+        return false;
+    }
+
+    private static String rectKey(List<float[]> rects) {
+        if (rects == null || rects.isEmpty()) return "[]";
+        StringBuilder result = new StringBuilder("[");
+        for (float[] rect : rects) result.append(Arrays.toString(rect)).append(';');
+        return result.append(']').toString();
     }
 }

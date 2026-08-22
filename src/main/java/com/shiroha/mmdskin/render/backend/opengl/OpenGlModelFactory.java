@@ -147,7 +147,8 @@ final class OpenGlModelFactory {
                                     ? texFilename : layer.texture;
                             var layerTexture = MinecraftTextureRegistry.getFiltered(
                                     layerPath, modelDir, layer.maskMode, layer.maskColor,
-                                    layer.maskTolerance, layer.minBrightness, layer.minSaturation);
+                                    layer.maskTolerance, layer.minBrightness, layer.maxBrightness,
+                                    layer.minSaturation, layer.uvRects, layer.preserveSourceColor);
                             if (layerTexture != null && layer.strength > 0.0f) {
                                 mats[i].minecraftEmissionLayers.add(
                                         new ModelMaterial.MinecraftEmissionLayer(
