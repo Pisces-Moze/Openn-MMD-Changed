@@ -33,6 +33,11 @@ final class OpenGlModelRenderer {
 
     static void render(OpenGlModelInstance target, Entity entityIn, float entityYaw, float entityPitch,
                        Vector3f entityTrans, PoseStack deliverStack, int packedLight) {
+        // Direct PMX OpenGL draws do not use Iris' wrapped vertex pipeline and
+        // produce invalid shadow-space positions in Oculus shadow passes.
+        if (IrisCompat.isRenderingShadows()) {
+            return;
+        }
         Minecraft minecraft = Minecraft.getInstance();
         LightingHelper.LightData light = LightingHelper.sampleLight(entityIn, minecraft);
         var workingQuat = target.workingQuaternion();

@@ -39,6 +39,11 @@ final class GpuSkinningModelRenderer {
                        float entityPitch,
                        Vector3f entityTrans,
                        PoseStack deliverStack) {
+        // Avoid corrupting the shader pack's shadow map with direct skinned
+        // draws that bypass Iris' wrapped shadow vertex pipeline.
+        if (IrisCompat.isRenderingShadows()) {
+            return;
+        }
         Minecraft minecraft = Minecraft.getInstance();
         LightingHelper.LightData light = LightingHelper.sampleLight(entityIn, minecraft);
         var workingQuat = target.workingQuaternion();
