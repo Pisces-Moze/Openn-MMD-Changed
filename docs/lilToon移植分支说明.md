@@ -142,10 +142,13 @@ python tools/import_unity_liltoon.py `
 ```
 
 青色荧光使用独立 fullbright 附加层实现，因此开启 Iris/Oculus 光影包时仍然
-生效。光影包启用期间，基础模型在正常画面交由其实体管线绘制，可以接收环境和
-其他物体投射的阴影。PMX 直接 OpenGL 绘制无法使用 Iris 包装后的 shadow vertex
-管线，因此 MMD 网格会跳过 shadow pass，避免 Complementary 等光影出现远离实体
-的长条阴影。发光附加层同样只在正常画面 pass 绘制，不会污染阴影贴图。
+生效。当前 PMX 后端直接调用 OpenGL 绘制，不能安全复用任意光影包包装后的实体和
+shadow vertex 管线；模型因此使用本分支自己的 lilToon 兼容程序，并跳过光影包的
+shadow pass。它仍按 Minecraft 方块光与天空光变暗，但不保证接收光影包逐像素物体
+阴影，也不会向光影包阴影图投影。每次 MMD 绘制前后会保存并恢复程序、VAO/VBO、
+纹理、深度、剔除和混合状态，避免随后渲染的其他实体产生错位长条投影。若要完整
+接入任意光影包，需要新增基于 Minecraft `VertexConsumer/RenderType` 的网格后端，
+不能把原始 `glDrawElements` 直接发送给 Oculus/Iris 当前程序。
 
 ### 发光层处理规则
 
@@ -158,6 +161,15 @@ python tools/import_unity_liltoon.py `
 5. `emissionStrength` 控制独立发光图强度，`cyanEmissionStrength` 只控制青色
    涂层，两者互不替代。
 6. 发光是视觉全亮，不会像火把一样照亮方块和周围实体。
+
+## 模型物理的通用兼容
+
+lilToon 只描述材质，不包含 VRChat PhysBone 的运行数据。导入 Prefab 时应同时检查
+可动骨链；正式资产优先在 PMX 中制作刚体与 Joint，让内置 Bullet 按标准 MMD 规则
+计算。没有任何 PMX 刚体时，运行时会按常见的头发、耳朵、尾巴、衣摆和装饰骨骼名
+建立保守的弹簧链回退。它适用于大多数规范命名模型，但不会复刻 PhysBone 的抓取、
+碰撞体、拉伸、限制曲线等全部功能。具体命名、制作和测试方法见通用开发手册的
+“耳朵、头发、尾巴和衣摆的通用物理”，不要为单一角色硬编码材质名或骨骼序号。
 
 当前不会复刻 AudioLink、Main2nd/Main3rd、Glitter、Dissolve、各向异性、
 Unity 光照探针和完整透明队列。导入器保留通用材质结构，但这些效果需要另行
