@@ -140,7 +140,10 @@ final class MinecraftBufferedModelRenderer {
                         positions.getFloat(vector + 8))
                 .color(channel(red), channel(green), channel(blue),
                         Math.round(Math.min(1.0f, alpha) * 255.0f))
-                .uv(uvs.getFloat(uv), uvs.getFloat(uv + 4))
+                // MC-MMD-rust flips decoded images vertically before the legacy OpenGL
+                // upload. Minecraft's DynamicTexture keeps the source row order, so the
+                // buffered path must mirror V to preserve the PMX-authored UV layout.
+                .uv(uvs.getFloat(uv), 1.0f - uvs.getFloat(uv + 4))
                 .overlayCoords(overlay)
                 .uv2(light);
         if (stableLightNormal) {
