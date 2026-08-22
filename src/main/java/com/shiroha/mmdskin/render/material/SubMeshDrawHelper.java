@@ -54,6 +54,7 @@ public final class SubMeshDrawHelper {
                             MaterialFilter materialFilter,
                             MaterialState materialState) {
         RenderSystem.activeTexture(GL46C.GL_TEXTURE0);
+        int drawProgram = GL46C.glGetInteger(GL46C.GL_CURRENT_PROGRAM);
         int lastBoundTexture = -1;
 
         for (int i = 0; i < subMeshCount; ++i) {
@@ -80,12 +81,12 @@ public final class SubMeshDrawHelper {
 
             int textureId = textureResolver.resolve(materialId);
             if (textureId != lastBoundTexture) {
-                RenderSystem.setShaderTexture(0, textureId);
                 GL46C.glBindTexture(GL46C.GL_TEXTURE_2D, textureId);
                 lastBoundTexture = textureId;
             }
 
             long startPos = (long) beginIndex * indexElementSize;
+            GL46C.glUseProgram(drawProgram);
             GL46C.glDrawElements(GL46C.GL_TRIANGLES, vertexCount, indexType, startPos);
         }
     }
@@ -97,6 +98,7 @@ public final class SubMeshDrawHelper {
                                    TextureResolver textureResolver,
                                    AlphaResolver alphaResolver) {
         RenderSystem.activeTexture(GL46C.GL_TEXTURE0);
+        int drawProgram = GL46C.glGetInteger(GL46C.GL_CURRENT_PROGRAM);
         int lastBoundTexture = -1;
 
         for (int i = 0; i < subMeshCount; ++i) {
@@ -113,12 +115,12 @@ public final class SubMeshDrawHelper {
 
             int textureId = textureResolver.resolve(materialId);
             if (textureId != lastBoundTexture) {
-                RenderSystem.setShaderTexture(0, textureId);
                 GL46C.glBindTexture(GL46C.GL_TEXTURE_2D, textureId);
                 lastBoundTexture = textureId;
             }
 
             long startPos = (long) beginIndex * indexElementSize;
+            GL46C.glUseProgram(drawProgram);
             GL46C.glDrawElements(GL46C.GL_TRIANGLES, vertexCount, indexType, startPos);
         }
     }

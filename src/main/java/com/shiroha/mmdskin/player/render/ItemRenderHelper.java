@@ -5,6 +5,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.shiroha.mmdskin.bridge.runtime.NativeMatrixPort;
 import com.shiroha.mmdskin.config.ModelConfigData;
 import com.shiroha.mmdskin.config.ModelConfigManager;
+import com.shiroha.mmdskin.compat.iris.IrisCompat;
 import com.shiroha.mmdskin.model.runtime.ManagedModel;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
@@ -122,6 +123,13 @@ public class ItemRenderHelper {
         runtimeBridge.populateHandMatrix(modelHandle, handMat, isMainHand);
 
         matrixStack.pushPose();
+        boolean shadowPass = IrisCompat.isRenderingShadows();
+        float configuredModelScale = ModelConfigManager
+                .getConfig(model.modelInstance().getModelName()).modelScale;
+        if (shadowPass) {
+            float pmxScale = 0.09f * configuredModelScale;
+            matrixStack.scale(pmxScale, pmxScale, pmxScale);
+        }
         matrixStack.last().pose().mul(convertToMatrix4f(runtimeBridge, handMat, model.entityState().matBuffer));
 
         matrixStack.mulPose(new Quaternionf().rotateX(90.0f * DEG_TO_RAD));
@@ -129,9 +137,9 @@ public class ItemRenderHelper {
 
         applyConfiguredRotation(matrixStack, player, model, hand);
 
-        float configuredModelScale = ModelConfigManager
-                .getConfig(model.modelInstance().getModelName()).modelScale;
-        float baseScale = 0.9f * configuredModelScale * itemScale;
+        float baseScale = shadowPass
+                ? 10.0f * itemScale
+                : 0.9f * configuredModelScale * itemScale;
         matrixStack.scale(baseScale, baseScale, baseScale);
 
         ItemDisplayContext displayCtx = isMainHand
