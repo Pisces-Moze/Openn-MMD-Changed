@@ -1,0 +1,7 @@
+[package]
+name = "pmx_probe"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+mmd = { path = "../../../MC-MMD-rust/rust_engine/deps/mmd-rs" }

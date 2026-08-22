@@ -1,0 +1,40 @@
+# Rust
+/target/
+Cargo.lock
+**/*.rs.bk
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Debug builds
+/debug/
+/target/debug/
+
+# Release builds
+/target/release/
+
+# Dependency directory
+
+
+# Backup files
+*.bak
+*.backup
+
+# WindsurfChatOpen
+.windsurfchatopen/
+.windsurfrules

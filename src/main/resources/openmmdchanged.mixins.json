@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.moze.openmmdchanged.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "openmmdchanged-refmap.json",
+  "mixins": [],
+  "client": [
+    "client.CameraMixin",
+    "client.LevelRendererMixin",
+    "client.ItemInHandRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
