@@ -2,6 +2,7 @@ package com.shiroha.mmdskin.model.runtime;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.shiroha.mmdskin.render.scene.RenderScene;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.world.entity.Entity;
 import org.joml.Vector3f;
 
@@ -17,6 +18,13 @@ public interface ModelInstance {
             PoseStack poseStack,
             int packedLight,
             RenderScene scene);
+
+    default void render(Entity entity, float entityYaw, float entityPitch,
+                        Vector3f entityTranslation, float tickDelta, PoseStack poseStack,
+                        int packedLight, RenderScene scene, MultiBufferSource buffers) {
+        render(entity, entityYaw, entityPitch, entityTranslation, tickDelta,
+                poseStack, packedLight, scene);
+    }
 
     void changeAnim(long animHandle, long layer);
 

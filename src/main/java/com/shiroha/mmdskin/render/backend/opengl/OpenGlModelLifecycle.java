@@ -27,6 +27,10 @@ final class OpenGlModelLifecycle {
             MemoryUtil.memFree(target.uv0Buffer);
             target.uv0Buffer = null;
         }
+        if (target.indexBuffer != null) {
+            MemoryUtil.memFree(target.indexBuffer);
+            target.indexBuffer = null;
+        }
         if (target.uv1Buffer != null) {
             MemoryUtil.memFree(target.uv1Buffer);
             target.uv1Buffer = null;

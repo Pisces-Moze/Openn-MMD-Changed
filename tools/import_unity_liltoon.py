@@ -105,13 +105,24 @@ def copy_texture(source: Path | None, output: Path, material_name: str,
                  semantic: str, force: bool) -> str | None:
     if source is None or not source.is_file():
         return None
-    filename = f"liltoon_{safe_name(material_name)}_{semantic}{source.suffix.lower()}"
+    direct_png = source.suffix.lower() == ".png"
+    filename = f"liltoon_{safe_name(material_name)}_{semantic}.png"
     target = output / filename
     if target.exists() and not force:
-        if target.read_bytes() != source.read_bytes():
-            raise FileExistsError(f"Refusing to replace {target}; pass --force")
-    else:
+        if direct_png and target.read_bytes() == source.read_bytes():
+            return filename
+        raise FileExistsError(f"Refusing to replace {target}; pass --force")
+    if direct_png:
         shutil.copy2(source, target)
+    else:
+        try:
+            from PIL import Image
+        except ImportError as error:
+            raise RuntimeError(
+                f"{source.suffix} must be converted to PNG; install Pillow or export a PNG copy"
+            ) from error
+        with Image.open(source) as image:
+            image.convert("RGBA").save(target, "PNG")
     return filename
 
 
@@ -141,6 +152,10 @@ def parse_material(path: Path, assets: Path, index: dict[str, Path],
     profile = {
         "aliases": [],
         "useShadow": floats.get("_UseShadow", 0.0) > 0.5,
+        # Minecraft extension: a conservative floor can be raised per material
+        # without turning the whole avatar into an emissive surface.
+        "baseLightFloor": 0.0,
+        "unlitStrength": max(0.0, min(1.0, floats.get("_AsUnlit", 0.0))),
         "shadowBorder": floats.get("_ShadowBorder", 0.5),
         "shadowBlur": floats.get("_ShadowBlur", 0.1),
         "shadowColor": unity_color(colors, "_ShadowColor", [0.82, 0.76, 0.85, 1.0]),

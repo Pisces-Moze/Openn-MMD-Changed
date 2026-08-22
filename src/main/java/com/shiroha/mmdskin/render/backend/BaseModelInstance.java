@@ -14,6 +14,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ShaderInstance;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import org.apache.logging.log4j.LogManager;
@@ -52,6 +53,25 @@ public abstract class BaseModelInstance implements ModelInstance {
     protected final AtomicLong nativeUpdateRevision = new AtomicLong(0L);
     private boolean physicsStateInitialized = false;
     private boolean physicsEnabled = true;
+    private MultiBufferSource activeBuffers;
+
+    @Override
+    public final void render(Entity entityIn, float entityYaw, float entityPitch,
+                             Vector3f entityTrans, float tickDelta, PoseStack mat,
+                             int packedLight, RenderScene context, MultiBufferSource buffers) {
+        MultiBufferSource previous = activeBuffers;
+        activeBuffers = buffers;
+        try {
+            render(entityIn, entityYaw, entityPitch, entityTrans, tickDelta,
+                    mat, packedLight, context);
+        } finally {
+            activeBuffers = previous;
+        }
+    }
+
+    protected final MultiBufferSource activeBuffers() {
+        return activeBuffers;
+    }
 
     public void setVrActive(boolean active) { this.vrActive = active; }
 

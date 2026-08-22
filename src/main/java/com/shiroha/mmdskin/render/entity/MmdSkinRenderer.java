@@ -83,7 +83,7 @@ public class MmdSkinRenderer<T extends Entity> extends EntityRenderer<T> {
             RenderSystem.setShader(GameRenderer::getRendertypeEntityCutoutNoCullShader);
             model.modelInstance().render(entityIn, reusablePose.bodyYaw, reusablePose.bodyPitch, reusablePose.translation,
                              tickDelta, matrixStackIn, packedLightIn,
-                             firstPerson ? RenderScene.FIRST_PERSON : RenderScene.WORLD);
+                             firstPerson ? RenderScene.FIRST_PERSON : RenderScene.WORLD, bufferIn);
             if (underlyingPlayer != null) {
                 if (localPlayer) {
                     FirstPersonManager.postRender(model.modelInstance().getModelHandle(), underlyingPlayer, tickDelta);

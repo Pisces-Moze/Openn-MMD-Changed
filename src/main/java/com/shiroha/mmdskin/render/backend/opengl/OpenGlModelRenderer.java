@@ -16,6 +16,7 @@ import com.shiroha.mmdskin.render.pipeline.RenderPerformanceProfiler;
 import com.shiroha.mmdskin.render.material.ModelMaterial;
 import com.shiroha.mmdskin.render.material.SubMeshDrawHelper;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.world.entity.Entity;
@@ -34,6 +35,16 @@ final class OpenGlModelRenderer {
 
     static void render(OpenGlModelInstance target, Entity entityIn, float entityYaw, float entityPitch,
                        Vector3f entityTrans, PoseStack deliverStack, int packedLight) {
+        // World geometry must be submitted through Minecraft's entity buffer. This keeps
+        // the active vanilla/Iris/Oculus program, matrices, lightmap and shadow contract
+        // intact instead of injecting raw OpenGL draws into an unknown shader program.
+        MultiBufferSource buffers = target.renderBuffers();
+        if (buffers != null) {
+            MinecraftBufferedModelRenderer.render(target, entityIn, entityYaw, entityPitch,
+                    entityTrans, deliverStack, packedLight, buffers);
+            return;
+        }
+
         // Oculus/Iris shadow programs require geometry to pass through their
         // wrapped vertex pipeline. Direct PMX OpenGL draws use incompatible
         // shadow-space matrices and otherwise create displaced streaks.

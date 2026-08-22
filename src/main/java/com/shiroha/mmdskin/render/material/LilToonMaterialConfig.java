@@ -95,6 +95,10 @@ public final class LilToonMaterialConfig {
     public static final class MaterialProfile {
         public List<String> aliases = List.of();
         public Boolean useShadow;
+        /** Minimum base-texture visibility after shader-pack lighting. */
+        public Float baseLightFloor;
+        /** lilToon _AsUnlit equivalent; separate from baseLightFloor. */
+        public Float unlitStrength;
         public Float shadowBorder;
         public Float shadowBlur;
         public float[] shadowColor;

@@ -65,7 +65,8 @@ final class PlayerModelRenderCoordinator {
                 matrixStack.scale(size[0], size[0], size[0]);
                 RenderSystem.setShader(GameRenderer::getRendertypeEntityTranslucentShader);
                 RenderScene context = isFirstPerson ? RenderScene.FIRST_PERSON : RenderScene.WORLD;
-                model.render(player, params.bodyYaw, params.bodyPitch, params.translation, tickDelta, matrixStack, packedLight, context);
+                model.render(player, params.bodyYaw, params.bodyPitch, params.translation, tickDelta,
+                        matrixStack, packedLight, context, vertexConsumers);
             }
 
             if (needsPostRenderSync) {

@@ -12,6 +12,7 @@ import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.util.List;
 import net.minecraft.client.renderer.ShaderInstance;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.world.entity.Entity;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -65,6 +66,7 @@ public class OpenGlModelInstance extends BaseModelInstance {
     ByteBuffer uv2Buffer;
     int vertexArrayObject;
     int indexBufferObject;
+    ByteBuffer indexBuffer;
     int vertexBufferObject;
     int colorBufferObject;
     int normalBufferObject;
@@ -216,6 +218,10 @@ public class OpenGlModelInstance extends BaseModelInstance {
 
     float modelScaleValue() {
         return getModelScale();
+    }
+
+    MultiBufferSource renderBuffers() {
+        return activeBuffers();
     }
 
     void loadMaterialMorphResults() {

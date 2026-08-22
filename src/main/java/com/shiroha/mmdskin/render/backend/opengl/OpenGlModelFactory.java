@@ -6,6 +6,7 @@ import com.shiroha.mmdskin.render.bootstrap.ClientRenderRuntime;
 import com.shiroha.mmdskin.render.material.ModelMaterial;
 import com.shiroha.mmdskin.render.material.LilToonMaterialConfig;
 import com.shiroha.mmdskin.texture.runtime.TextureRepository;
+import com.shiroha.mmdskin.texture.runtime.MinecraftTextureRegistry;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
@@ -67,6 +68,7 @@ final class OpenGlModelFactory {
         FloatBuffer light0Buff = null;
         FloatBuffer light1Buff = null;
         ByteBuffer matMorphResultsByteBuf = null;
+        ByteBuffer indexBuffer = null;
 
         try {
             vertexArrayObject = GL46C.glGenVertexArrays();
@@ -94,12 +96,11 @@ final class OpenGlModelFactory {
             int indexCount = (int) nativeBackend.getIndexCount(model);
             int indexSize = indexCount * indexElementSize;
             long indexData = nativeBackend.getIndexDataAddress(model);
-            ByteBuffer indexBuffer = MemoryUtil.memAlloc(indexSize);
+            indexBuffer = MemoryUtil.memAlloc(indexSize).order(ByteOrder.nativeOrder());
             nativeBackend.copyNativeDataToBuffer(indexBuffer, indexData, indexSize);
             indexBuffer.position(0);
             GL46C.glBindBuffer(GL46C.GL_ELEMENT_ARRAY_BUFFER, indexBufferObject);
             GL46C.glBufferData(GL46C.GL_ELEMENT_ARRAY_BUFFER, indexBuffer, GL46C.GL_STATIC_DRAW);
-            MemoryUtil.memFree(indexBuffer);
 
             int indexType = switch (indexElementSize) {
                 case 1 -> GL46C.GL_UNSIGNED_BYTE;
@@ -116,6 +117,7 @@ final class OpenGlModelFactory {
                 mats[i].name = nativeBackend.getMaterialName(model, i);
                 String texFilename = nativeBackend.getMaterialTexturePath(model, i);
                 mats[i].texturePath = texFilename != null ? texFilename : "";
+                mats[i].minecraftTexture = MinecraftTextureRegistry.get(texFilename, modelDir);
                 lilToonConfig.apply(mats[i]);
                 if (texFilename != null && !texFilename.isEmpty()) {
                     TextureRepository.Texture mgrTex = TextureRepository.GetTexture(texFilename);
@@ -127,6 +129,10 @@ final class OpenGlModelFactory {
                     }
                     if (mats[i].isFacialFeature()) {
                         String eyePath = ModelMaterial.eyeTexturePath(texFilename);
+                        var minecraftEyeTexture = MinecraftTextureRegistry.get(eyePath, modelDir);
+                        if (minecraftEyeTexture != null) {
+                            mats[i].minecraftTexture = minecraftEyeTexture;
+                        }
                         TextureRepository.Texture eyeTexture = TextureRepository.GetTexture(eyePath);
                         if (eyeTexture != null) {
                             mats[i].tex = eyeTexture.tex;
@@ -140,6 +146,7 @@ final class OpenGlModelFactory {
                         String emissivePath = configuredEmission.isEmpty()
                                 ? ModelMaterial.emissionTexturePath(texFilename)
                                 : configuredEmission;
+                        mats[i].minecraftEmissionTexture = MinecraftTextureRegistry.get(emissivePath, modelDir);
                         TextureRepository.Texture emissiveTexture = TextureRepository.GetTexture(emissivePath);
                         if (emissiveTexture != null) {
                             mats[i].emissiveTex = emissiveTexture.tex;
@@ -221,6 +228,7 @@ final class OpenGlModelFactory {
             result.uv1Buffer = uv1Buffer;
             result.uv2Buffer = uv2Buffer;
             result.indexBufferObject = indexBufferObject;
+            result.indexBuffer = indexBuffer;
             result.vertexBufferObject = positionBufferObject;
             result.colorBufferObject = colorBufferObject;
             result.texcoordBufferObject = uv0BufferObject;
@@ -276,6 +284,7 @@ final class OpenGlModelFactory {
             if (light0Buff != null) MemoryUtil.memFree(light0Buff);
             if (light1Buff != null) MemoryUtil.memFree(light1Buff);
             if (matMorphResultsByteBuf != null) MemoryUtil.memFree(matMorphResultsByteBuf);
+            if (indexBuffer != null) MemoryUtil.memFree(indexBuffer);
             return null;
         }
     }

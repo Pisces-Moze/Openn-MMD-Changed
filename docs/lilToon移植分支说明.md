@@ -39,18 +39,23 @@ Unity 的 ShaderLab 编译器、宏、灯光结构、摄像机变量与材质序
 
 ## 当前实现状态
 
-第一版运行时移植位于：
+运行时包含两条路径：
 
 - `src/main/java/com/shiroha/mmdskin/render/shader/LilToonShaderCpu.java`
-- `src/main/resources/assets/mmdskin/shader/liltoon_compat_main.frag.glsl`
+- `src/main/java/com/shiroha/mmdskin/render/backend/opengl/MinecraftBufferedModelRenderer.java`
+- `src/main/java/com/shiroha/mmdskin/render/backend/opengl/PmxRenderTypes.java`
 
-启用原有 Toon Rendering 开关时，CPU/OpenGL 与 GPU skinning 后端都会实例化
-`LilToonShaderCpu`。初始化失败时仍沿用现有标准渲染回退机制。
+世界、实体、玩家和背包模型优先把 CPU 蒙皮后的 PMX 三角形交给 Minecraft
+`VertexConsumer/RenderType`。基础层沿用当前 Minecraft/Iris/Oculus 实体着色器，
+最低亮度层和 Emission 层分别提交。这样不会把原始 `glDrawElements` 注入未知的
+光影程序，也不会污染其他实体、手持物品或地面的矩阵和阴影状态。旧式 GPU 直绘
+暂时禁用，直到它也能输出到相同的 Minecraft 顶点管线。
 
-当前已经实现卡通阴影边界、环境明暗、程序化 MatCap、边缘光、分材质
-unlit、显式启用的青色荧光、独立发光贴图和受伤变红。普通材质会随 Minecraft
-环境变暗；只有 `emissionTexture` 和非零 `cyanEmissionStrength` 产生全亮效果。
-发光贴图使用加法混合，因此 Unity 常见的不透明黑底不会覆盖基础颜色。
+兼容路径已实现光影包可识别的基础光照与投影、分材质最低亮度、`_AsUnlit`、
+Cutout/Transparent、双面材质、独立发光贴图和受伤变红。普通材质仍接收环境光、
+物体遮挡与光影包阴影；发光贴图使用独立全亮加法层，黑底不会覆盖基础颜色。
+卡通阴影、Rim、MatCap 和 Outline 的精确 lilToon 公式仍保留在无光影实验程序中，
+不同光影包下优先保证正确几何、基础色、阴影和发光，而不是强行替换光影包程序。
 
 尚未实现的 Unity 专属功能包括多层 Main2nd/Main3rd、法线贴图、各向异性、
 AudioLink、距离淡出、宝石/毛发专用 pass 和 Unity 光照探针。它们需要按
@@ -120,35 +125,36 @@ python tools/import_unity_liltoon.py `
 | 参数 | 作用 | 当前兼容情况 |
 | --- | --- | --- |
 | `aliases` | PMX 材质名与 Unity 材质名不同时的别名 | 完整 |
-| `useShadow` / `shadowBorder` / `shadowBlur` / `shadowColor` | 卡通阴影及软边 | 近似 |
+| `baseLightFloor` | 光影计算后仍保留的基础贴图最低比例，范围 `0`～`1` | 完整，Minecraft 扩展 |
+| `unlitStrength` | Unity lilToon `_AsUnlit`，导入器自动读取 | 完整，叠加为最低亮度 |
+| `useShadow` / `shadowBorder` / `shadowBlur` / `shadowColor` | 卡通阴影及软边 | 光影包兼容路径由光影包决定 |
 | `useRim` / `rimBorder` / `rimBlur` / `rimFresnelPower` / `rimIntensity` / `rimColor` | 边缘光 | 近似 |
 | `useMatCap` / `matCapStrength` | 视图空间程序化高光 | 近似；尚不采样 Unity MatCap 图 |
 | `useEmission` / `emissionTexture` / `emissionStrength` | 独立全亮发光图层 | 支持，加法混合 |
-| `cyanEmissionStrength` | 从该材质基础贴图中仅提取高饱和青色作为荧光蒙版 | Minecraft 扩展；默认 `0` |
+| `cyanEmissionStrength` | 旧实验程序的按颜色提取 | 仅兼容旧模型；新模型应制作明确的 Emission PNG |
 | `normalTexture` / `normalScale` | 法线贴图记录 | 已导入，尚未渲染 |
 | `cull` / `renderMode` / `alphaCutoff` | 剔除、透明模式、裁剪 | 部分兼容，复杂透明排序仍有限制 |
 | `useOutline` / `outlineWidth` / `outlineColor` | 描边 | 基础支持；面部材质自动排除 |
 
-`cyanEmissionStrength` 推荐范围为 `0.3`～`1.0`。它必须按材质显式开启，不会对
-整个模型全局扫描。例如：
+通用模型不要依赖“青色等于发光”的颜色猜测。不同角色的基础色、色彩空间和压缩
+方式不同，容易把皮肤或衣服全部判成发光。应为每个需要发光的材质提供同 UV、同
+尺寸的独立 PNG，例如：
 
 ```json
 "Body": {
   "useEmission": true,
   "emissionTexture": "liltoon_Body_emission.png",
   "emissionStrength": 1.0,
-  "cyanEmissionStrength": 0.8
+  "baseLightFloor": 0.35,
+  "unlitStrength": 0.0
 }
 ```
 
-青色荧光使用独立 fullbright 附加层实现，因此开启 Iris/Oculus 光影包时仍然
-生效。当前 PMX 后端直接调用 OpenGL 绘制，不能安全复用任意光影包包装后的实体和
-shadow vertex 管线；模型因此使用本分支自己的 lilToon 兼容程序，并跳过光影包的
-shadow pass。它仍按 Minecraft 方块光与天空光变暗，但不保证接收光影包逐像素物体
-阴影，也不会向光影包阴影图投影。每次 MMD 绘制前后会保存并恢复程序、VAO/VBO、
-纹理、深度、剔除和混合状态，避免随后渲染的其他实体产生错位长条投影。若要完整
-接入任意光影包，需要新增基于 Minecraft `VertexConsumer/RenderType` 的网格后端，
-不能把原始 `glDrawElements` 直接发送给 Oculus/Iris 当前程序。
+`baseLightFloor` 推荐从 `0` 开始：深色风格化身体可用 `0.2`～`0.55`，极暗材质
+最多先试 `0.65`；设为 `1` 会接近无光照材质并削弱阴影。它不是发光，不使用
+Emission 蒙版。独立 Emission 使用 fullbright 附加层，在 Iris/Oculus 光影下仍
+保持可见，但不会作为真实点光源照亮方块。基础层使用真正的 PMX 三角形
+`RenderType`，因此由当前光影包决定接收和投射阴影的具体效果。
 
 ### 发光层处理规则
 
@@ -156,10 +162,10 @@ shadow pass。它仍按 Minecraft 方块光与天空光变暗，但不保证接�
    `liltoon_<材质名>_emission.png`。
 2. 发光图中黑色代表“不增加光”，不要求 Alpha 透明；渲染器使用加法混合。
 3. 不要把发光结果烘焙回 Base Color，否则白天基础色会变浅。
-4. 只有青色涂层需要发光而 Unity 没有单独蒙版时，对该材质设置
-   `cyanEmissionStrength`；不要给头发、衣服等无关材质开启。
-5. `emissionStrength` 控制独立发光图强度，`cyanEmissionStrength` 只控制青色
-   涂层，两者互不替代。
+4. Unity 使用 PSD/TGA/JPG 时，导入器会在输出目录转换为 PNG；需要 Python
+   Pillow。原 Unity 文件不会被修改。
+5. `emissionStrength` 控制独立发光图强度。旧的 `cyanEmissionStrength` 只作
+   旧实验模型兼容，新资产不要依赖它。
 6. 发光是视觉全亮，不会像火把一样照亮方块和周围实体。
 
 ## 模型物理的通用兼容

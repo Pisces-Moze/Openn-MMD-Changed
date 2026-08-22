@@ -2,7 +2,6 @@ package com.shiroha.mmdskin.render.backend.factory;
 
 import com.shiroha.mmdskin.bridge.runtime.NativeRenderBackendPort;
 import com.shiroha.mmdskin.bridge.runtime.PlatformCapabilityPort;
-import com.shiroha.mmdskin.config.ConfigManager;
 import com.shiroha.mmdskin.model.runtime.ModelInstance;
 import com.shiroha.mmdskin.render.backend.gpu.GpuSkinningModelInstance;
 import com.shiroha.mmdskin.render.backend.mode.ModelInstanceFactory;
@@ -50,15 +49,15 @@ public class GpuSkinningBackendFactory implements ModelInstanceFactory {
 
     @Override
     public boolean isAvailable() {
-
-        if (platformCapabilityPort.isAndroid()) return false;
-
-        return true;
+        // The legacy GPU backend writes directly through OpenGL and therefore cannot
+        // participate in Minecraft/Iris RenderType passes. Keep it unavailable until
+        // its skinned output can be submitted through a VertexConsumer as well.
+        return false;
     }
 
     @Override
     public boolean isEnabledInCurrentEnvironment() {
-        return isAvailable() && ConfigManager.isGpuSkinningEnabled();
+        return false;
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.shiroha.mmdskin.render.material;
 
 import java.util.Locale;
+import net.minecraft.resources.ResourceLocation;
 
 /** MMD 模型材质定义。 */
 public class ModelMaterial {
@@ -16,8 +17,14 @@ public class ModelMaterial {
     public boolean hasAlpha = false;
     public String name = "";
     public String texturePath = "";
+    public ResourceLocation minecraftTexture;
+    public ResourceLocation minecraftEmissionTexture;
     public boolean ownsTexture = false;
     public boolean lilUseShadow = true;
+    /** Minimum view-independent contribution of the authored base texture. */
+    public float lilBaseLightFloor = 0.0f;
+    /** Direct counterpart of lilToon's _AsUnlit. */
+    public float lilUnlitStrength = -1.0f;
     public float lilShadowBorder = 0.52f;
     public float lilShadowBlur = 0.075f;
     public final float[] lilShadowColor = {0.78f, 0.84f, 0.94f};
@@ -33,6 +40,7 @@ public class ModelMaterial {
     public float lilEmissionStrength = -1.0f;
     public float lilCyanEmissionStrength = 0.0f;
     public String lilEmissionTexture = "";
+    public final float[] lilEmissionColor = {1.0f, 1.0f, 1.0f};
     public String lilNormalTexture = "";
     public float lilNormalScale = 1.0f;
     public String lilCull = "model";
@@ -53,7 +61,12 @@ public class ModelMaterial {
     }
 
     public float unlitStrength() {
+        if (lilUnlitStrength >= 0.0f) return lilUnlitStrength;
         return isFacialFeature() ? 0.92f : 0.0f;
+    }
+
+    public float baseLightFloor() {
+        return Math.max(0.0f, Math.min(1.0f, lilBaseLightFloor));
     }
 
     /** Material-name profile used by the lilToon compatibility renderer. */
@@ -63,6 +76,8 @@ public class ModelMaterial {
 
     public void applyLilToonProfile(LilToonMaterialConfig.MaterialProfile p) {
         if (p.useShadow != null) lilUseShadow = p.useShadow;
+        if (p.baseLightFloor != null) lilBaseLightFloor = clamp01(p.baseLightFloor);
+        if (p.unlitStrength != null) lilUnlitStrength = clamp01(p.unlitStrength);
         if (p.shadowBorder != null) lilShadowBorder = p.shadowBorder;
         if (p.shadowBlur != null) lilShadowBlur = p.shadowBlur;
         copyRgb(p.shadowColor, lilShadowColor);
@@ -78,6 +93,7 @@ public class ModelMaterial {
         if (p.emissionStrength != null) lilEmissionStrength = p.emissionStrength;
         if (p.cyanEmissionStrength != null) lilCyanEmissionStrength = Math.max(0.0f, p.cyanEmissionStrength);
         if (p.emissionTexture != null) lilEmissionTexture = p.emissionTexture;
+        copyRgb(p.emissionColor, lilEmissionColor);
         if (p.normalTexture != null) lilNormalTexture = p.normalTexture;
         if (p.normalScale != null) lilNormalScale = p.normalScale;
         if (p.cull != null) lilCull = p.cull;
@@ -95,6 +111,10 @@ public class ModelMaterial {
     private static void copyRgb(float[] source, float[] target) {
         if (source == null || source.length < 3) return;
         target[0] = source[0]; target[1] = source[1]; target[2] = source[2];
+    }
+
+    private static float clamp01(float value) {
+        return Math.max(0.0f, Math.min(1.0f, value));
     }
 
     public static String emissionTexturePath(String baseTexturePath) {
