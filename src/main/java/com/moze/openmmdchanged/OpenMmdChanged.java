@@ -6,8 +6,8 @@ import com.moze.openmmdchanged.registry.ModEntities;
 import com.moze.openmmdchanged.registry.ModItems;
 import com.moze.openmmdchanged.registry.ModTransfurVariants;
 import com.shiroha.mmdskin.MmdSkinClient;
+import net.ltxprogrammer.changed.init.ChangedTabs;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.event.BuildCreativeModeTabContentsEvent;
@@ -42,7 +42,7 @@ public final class OpenMmdChanged {
     }
 
     private static void addCreativeTabItems(BuildCreativeModeTabContentsEvent event) {
-        if (event.getTabKey() == CreativeModeTabs.SPAWN_EGGS) {
+        if (event.getTabKey().equals(ChangedTabs.TAB_CHANGED_ENTITIES.getKey())) {
             event.accept(ModItems.MMD_LATEX_SPAWN_EGG.get());
         }
     }
