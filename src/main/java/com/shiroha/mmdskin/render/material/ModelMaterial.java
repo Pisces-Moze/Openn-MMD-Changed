@@ -38,7 +38,8 @@ public class ModelMaterial {
     public final float[] lilRimColor = {0.30f, 0.78f, 0.92f};
     public boolean lilUseMatCap = false;
     public float lilMatCapStrength = 0.0f;
-    public boolean lilUseEmission = true;
+    /** Emission is opt-in per material; texture names and base colors never enable it. */
+    public boolean lilUseEmission = false;
     public float lilEmissionStrength = -1.0f;
     public float lilCyanEmissionStrength = 0.0f;
     public String lilEmissionTexture = "";
@@ -55,6 +56,14 @@ public class ModelMaterial {
 
     public boolean hasEmission() {
         return emissiveTex > 0;
+    }
+
+    /** Both declarations are required so native and Minecraft render paths stay equivalent. */
+    public boolean hasExplicitEmissionConfiguration() {
+        return lilUseEmission
+                && lilEmissionTexture != null
+                && !lilEmissionTexture.isBlank()
+                && !lilEmissionLayers.isEmpty();
     }
 
     public float emissionStrength() {
@@ -170,16 +179,6 @@ public class ModelMaterial {
             this.strength = strength;
             this.color = color.clone();
         }
-    }
-
-    public static String emissionTexturePath(String baseTexturePath) {
-        if (baseTexturePath == null || baseTexturePath.isEmpty()) {
-            return "";
-        }
-        int dot = baseTexturePath.lastIndexOf('.');
-        return dot > baseTexturePath.lastIndexOf('/') && dot > baseTexturePath.lastIndexOf('\\')
-                ? baseTexturePath.substring(0, dot) + "_emi.png"
-                : baseTexturePath + "_emi.png";
     }
 
     public static String eyeTexturePath(String baseTexturePath) {

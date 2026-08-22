@@ -141,7 +141,7 @@ final class OpenGlModelFactory {
                             texKeys.add(eyePath);
                         }
                     }
-                    if (mats[i].lilUseEmission) {
+                    if (mats[i].hasExplicitEmissionConfiguration()) {
                         for (ModelMaterial.EmissionLayerDefinition layer : mats[i].lilEmissionLayers) {
                             String layerPath = "$base".equalsIgnoreCase(layer.texture)
                                     ? texFilename : layer.texture;
@@ -155,11 +155,7 @@ final class OpenGlModelFactory {
                                                 layerTexture, layer.strength, layer.color));
                             }
                         }
-                        String configuredEmission = mats[i].configuredEmissionPath(modelDir);
-                        String emissivePath = configuredEmission;
-                        if (emissivePath.isEmpty() && mats[i].lilEmissionLayers.isEmpty()) {
-                            emissivePath = ModelMaterial.emissionTexturePath(texFilename);
-                        }
+                        String emissivePath = mats[i].configuredEmissionPath(modelDir);
                         if (!emissivePath.isEmpty()) {
                             mats[i].minecraftEmissionTexture = MinecraftTextureRegistry.get(emissivePath, modelDir);
                             TextureRepository.Texture emissiveTexture = TextureRepository.GetTexture(emissivePath);

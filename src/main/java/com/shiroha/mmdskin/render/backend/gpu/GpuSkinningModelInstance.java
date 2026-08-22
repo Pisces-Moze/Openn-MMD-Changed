@@ -313,11 +313,8 @@ public class GpuSkinningModelInstance extends BaseModelInstance {
                             textureKeys.add(eyePath);
                         }
                     }
-                    if (mats[i].lilUseEmission) {
-                        String configuredEmission = mats[i].configuredEmissionPath(modelDir);
-                        String emissivePath = configuredEmission.isEmpty()
-                                ? ModelMaterial.emissionTexturePath(texFilename)
-                                : configuredEmission;
+                    if (mats[i].hasExplicitEmissionConfiguration()) {
+                        String emissivePath = mats[i].configuredEmissionPath(modelDir);
                         TextureRepository.Texture emissiveTexture = TextureRepository.GetTexture(emissivePath);
                         if (emissiveTexture != null) {
                             mats[i].emissiveTex = emissiveTexture.tex;

@@ -69,7 +69,7 @@ final class MinecraftBufferedModelRenderer {
                     pose, normal, target, first, count, materialLight, overlay, alpha,
                     1.0f, 1.0f, 1.0f, false);
 
-            if (!shadowPass && material.lilUseEmission) {
+            if (!shadowPass && material.hasExplicitEmissionConfiguration()) {
                 for (ModelMaterial.MinecraftEmissionLayer layer : material.minecraftEmissionLayers) {
                     if (layer.texture == null || layer.strength <= 0.001f) continue;
                     float glowAlpha = alpha * Math.min(1.0f, layer.strength);

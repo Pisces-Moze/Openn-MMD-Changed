@@ -138,35 +138,37 @@ python tools/import_unity_liltoon.py `
 | `useOutline` / `outlineWidth` / `outlineColor` | 描边 | 基础支持；面部材质自动排除 |
 
 通用模型不要依赖“青色等于发光”的颜色猜测。不同角色的基础色、色彩空间和压缩
-方式不同，容易把皮肤或衣服全部判成发光。应为每个需要发光的材质提供同 UV、同
-尺寸的独立 PNG，例如：
+方式不同，容易把皮肤或衣服全部判成发光。每个需要发光的材质必须提供同 UV、同
+尺寸的独立 RGBA PNG，规范名为 `<PMX材质名>_emission.png`，例如：
+
+运行时采用显式启用原则：`ModelMaterial` 默认 `useEmission=false`，不再扫描或自动
+加载 `<主贴图名>_emi.png`。一个模型只有在自己的 `liltoon_materials.json` 中明确
+列出发光材质和发光贴图时才会发光，避免模型之间互相依赖命名猜测。
 
 ```json
 "Body": {
   "useEmission": true,
-  "emissionTexture": "liltoon_Body_emission.png",
+  "emissionTexture": "Body_emission.png",
   "emissionStrength": 1.0,
   "baseLightFloor": 0.35,
   "unlitStrength": 0.0
 }
 ```
 
-同一个材质需要“眼睛贴图发光 + 主贴图中的青色涂层发光”时，可以叠加：
+同一个材质需要让不同语义层使用不同强度时，应先分别从 PSD 导出，再叠加：
 
 ```json
 "emissionLayers": [
   {
-    "texture": "eyes_emission.png",
+    "texture": "Body_emission_eyes.png",
     "maskMode": "texture",
     "strength": 0.7
   },
   {
-    "texture": "$base",
-    "maskMode": "cyan",
+    "texture": "Body_emission_markings.png",
+    "maskMode": "texture",
     "strength": 0.85,
-    "maskTolerance": 0.5,
-    "minBrightness": 0.45,
-    "minSaturation": 0.25
+    "color": [1.0, 1.0, 1.0, 1.0]
   }
 ]
 ```
@@ -181,7 +183,7 @@ python tools/import_unity_liltoon.py `
 - `preserveSourceColor: false`：把筛选结果转为白色蒙版，最终发光色由该层 `color`
   决定；默认 `true`，保留源贴图颜色。
 
-颜色筛选适合迁移阶段和色块清晰的贴图；正式发布仍优先手绘独立蒙版，这与 Changed
+颜色筛选仅适合迁移阶段和色块清晰的贴图；正式发布必须优先使用独立蒙版，这与 Changed
 原版 `EmissiveBodyLayer + RenderType.eyes` 的资源组织方式一致。
 
 `baseLightFloor` 推荐从 `0` 开始：深色风格化身体可用 `0.05`～`0.25`，只在确有
@@ -193,15 +195,31 @@ lightmap 亮度实现，不再重复绘制全亮基础贴图，因此不会形�
 
 ### 发光层处理规则
 
-1. 优先使用 Unity 材质实际引用的 `_EmissionMap`，导入器会复制为
-   `liltoon_<材质名>_emission.png`。
-2. 发光图中黑色代表“不增加光”，不要求 Alpha 透明；渲染器使用加法混合。
-3. 不要把发光结果烘焙回 Base Color，否则白天基础色会变浅。
-4. Unity 使用 PSD/TGA/JPG 时，导入器会在输出目录转换为 PNG；需要 Python
-   Pillow。原 Unity 文件不会被修改。
-5. `emissionStrength` 控制独立发光图强度。旧的 `cyanEmissionStrength` 只作
-   旧实验模型兼容，新资产不要依赖它。
-6. 发光是视觉全亮，不会像火把一样照亮方块和周围实体。
+1. 优先使用 Unity 材质实际引用的 `_EmissionMap`；没有现成 Emission Map 时，从
+   PSD 中明确列出的图层/图层组生成，不能从 Base Color 猜颜色。
+2. 正式文件统一命名为 `<材质>_emission.png`；拆分强度时使用
+   `<材质>_emission_<用途>.png`。全部加入 `assets.list`。
+3. 发光 PNG 与 Base Color 必须同尺寸、同 UV、同原点，不能裁边或翻转。推荐
+   RGBA PNG；非发光像素为 `RGBA(0,0,0,0)`，发光像素保留源颜色与 Alpha。
+4. PSD 推荐使用 `EMISSION/EMI_<序号>_<用途>` 命名。第三方 PSD 不能改名时，在
+   模型接入文档中记录完整路径，并用 `tools/extract_psd_emission_layers.py` 只读导出。
+5. 不要把发光结果烘焙回 Base Color，否则白天基础色会变浅；也不要把整张主贴图
+   设为发光，否则暗处会全身发亮。
+6. `maskMode: texture` 是新资产默认值。旧的 `cyanEmissionStrength`、`cyan`、
+   `color` 和 `$base` 筛选只作无源文件时的临时兼容。
+7. `emissionStrength` 控制独立发光图强度。发光是视觉全亮，不会像火把一样照亮
+   方块和周围实体。
+8. 必须显式写出 `useEmission: true`、`emissionTexture` 和至少一个
+   `emissionLayers` 项。前者兼容原生/GPU 路径，后者用于 Minecraft 缓冲渲染路径；
+   单张合成发光图时两处填写同一文件，保持后端结果一致。
+
+### 可维护的模型清单
+
+发光图层路径属于模型资产数据，不属于通用渲染器代码。每个模型的接入记录至少应
+维护：PSD 相对路径、变体顶层组、完整发光层路径、输出 PNG、对应 PMX 材质名和默认
+强度。PSD 能整理时统一使用 `EMISSION/EMI_<序号>_<用途>`；第三方 PSD 不能修改时
+保留原名并记录完整路径。更换模型或换色时只替换该模型的 PNG/JSON，不新增角色名
+判断、材质序号判断或固定 UV 坐标到 Java/Rust 渲染器。
 
 ## 模型物理的通用兼容
 
