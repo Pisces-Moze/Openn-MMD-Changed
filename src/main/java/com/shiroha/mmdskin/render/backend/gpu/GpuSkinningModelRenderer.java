@@ -105,8 +105,10 @@ final class GpuSkinningModelRenderer {
         RenderSystem.activeTexture(GL46C.GL_TEXTURE0);
 
         ShaderInstance currentShader = RenderSystem.getShader();
-        if (currentShader != null) {
+        if (currentShader != null && !IrisCompat.isIrisShaderActive()) {
             currentShader.clear();
+        } else if (currentShader != null) {
+            currentShader.apply();
         }
         BufferUploader.reset();
         RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
@@ -450,6 +452,8 @@ final class GpuSkinningModelRenderer {
         if (IrisCompat.isRenderingShadows()) {
             return;
         }
+        ShaderInstance previousIrisShader = IrisCompat.isIrisShaderActive()
+                ? RenderSystem.getShader() : null;
         FullbrightLayerShader shader = FullbrightLayerShader.getOrCreate();
         if (shader == null) {
             return;
@@ -505,6 +509,9 @@ final class GpuSkinningModelRenderer {
         RenderSystem.depthMask(true);
         if (posLoc >= 0) GL46C.glDisableVertexAttribArray(posLoc);
         if (uvLoc >= 0) GL46C.glDisableVertexAttribArray(uvLoc);
+        if (previousIrisShader != null) {
+            previousIrisShader.apply();
+        }
     }
 
     private static void drawToonSubMeshes(GpuSkinningModelInstance target, Minecraft minecraft, float lightIntensity) {
