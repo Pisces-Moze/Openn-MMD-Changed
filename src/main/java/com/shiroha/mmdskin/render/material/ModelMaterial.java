@@ -20,6 +20,7 @@ public class ModelMaterial {
     public String name = "";
     public String texturePath = "";
     public ResourceLocation minecraftTexture;
+    public ResourceLocation minecraftOutlineTexture;
     public ResourceLocation minecraftEmissionTexture;
     public boolean ownsTexture = false;
     public boolean lilUseShadow = true;
@@ -53,6 +54,7 @@ public class ModelMaterial {
     public float lilAlphaCutoff = 0.1f;
     public boolean lilUseOutline = true;
     public float lilOutlineWidth = -1.0f;
+    public final float[] lilOutlineColor = {0.06f, 0.08f, 0.12f, 1.0f};
 
     public boolean hasEmission() {
         return emissiveTex > 0;
@@ -121,6 +123,7 @@ public class ModelMaterial {
         if (p.alphaCutoff != null) lilAlphaCutoff = p.alphaCutoff;
         if (p.useOutline != null) lilUseOutline = p.useOutline;
         if (p.outlineWidth != null) lilOutlineWidth = p.outlineWidth;
+        copyRgba(p.outlineColor, lilOutlineColor);
     }
 
     public String configuredEmissionPath(String modelDir) {
@@ -131,6 +134,12 @@ public class ModelMaterial {
     private static void copyRgb(float[] source, float[] target) {
         if (source == null || source.length < 3) return;
         target[0] = source[0]; target[1] = source[1]; target[2] = source[2];
+    }
+
+    private static void copyRgba(float[] source, float[] target) {
+        if (source == null || source.length < 3) return;
+        target[0] = source[0]; target[1] = source[1]; target[2] = source[2];
+        if (source.length >= 4) target[3] = source[3];
     }
 
     private static float clamp01(float value) {

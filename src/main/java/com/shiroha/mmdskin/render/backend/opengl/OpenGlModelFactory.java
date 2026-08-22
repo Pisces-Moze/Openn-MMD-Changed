@@ -118,6 +118,7 @@ final class OpenGlModelFactory {
                 String texFilename = nativeBackend.getMaterialTexturePath(model, i);
                 mats[i].texturePath = texFilename != null ? texFilename : "";
                 mats[i].minecraftTexture = MinecraftTextureRegistry.get(texFilename, modelDir);
+                mats[i].minecraftOutlineTexture = MinecraftTextureRegistry.getOutlineMask(texFilename, modelDir);
                 lilToonConfig.apply(mats[i]);
                 if (texFilename != null && !texFilename.isEmpty()) {
                     TextureRepository.Texture mgrTex = TextureRepository.GetTexture(texFilename);

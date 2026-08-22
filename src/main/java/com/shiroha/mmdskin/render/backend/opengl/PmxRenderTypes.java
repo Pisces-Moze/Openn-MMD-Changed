@@ -28,6 +28,10 @@ final class PmxRenderTypes extends RenderType {
         return CACHE.computeIfAbsent(new Key(texture, Layer.EMISSION, Blend.ADDITIVE, cull), PmxRenderTypes::create);
     }
 
+    static RenderType pmxOutline(ResourceLocation texture) {
+        return CACHE.computeIfAbsent(new Key(texture, Layer.OUTLINE, Blend.CUTOUT, true), PmxRenderTypes::create);
+    }
+
     private static RenderType create(Key key) {
         RenderType.CompositeState.CompositeStateBuilder builder = RenderType.CompositeState.builder()
                 .setTextureState(new RenderStateShard.TextureStateShard(key.texture, false, false))
@@ -50,6 +54,12 @@ final class PmxRenderTypes extends RenderType {
                     .setLightmapState(NO_LIGHTMAP)
                     .setOverlayState(NO_OVERLAY)
                     .setWriteMaskState(COLOR_WRITE);
+            case OUTLINE -> builder
+                    .setShaderState(RENDERTYPE_ENTITY_CUTOUT_SHADER)
+                    .setTransparencyState(NO_TRANSPARENCY)
+                    .setLightmapState(LIGHTMAP)
+                    .setOverlayState(NO_OVERLAY)
+                    .setWriteMaskState(COLOR_DEPTH_WRITE);
         }
 
         return RenderType.create(
@@ -62,7 +72,7 @@ final class PmxRenderTypes extends RenderType {
                 builder.createCompositeState(false));
     }
 
-    private enum Layer { BASE, EMISSION }
+    private enum Layer { BASE, EMISSION, OUTLINE }
 
     private enum Blend {
         OPAQUE, CUTOUT, TRANSLUCENT, ADDITIVE;

@@ -30,10 +30,7 @@ void main() {
         discard;
     }
 
-    float texLum = dot(texColor.rgb, vec3(0.299, 0.587, 0.114));
-    vec3 finalOutline = OutlineColor * mix(1.0, texLum, 0.4);
-
-    fragColor = vec4(finalOutline, texColor.a * edge);
+    fragColor = vec4(OutlineColor, texColor.a * edge);
     fragData1 = vec4(normal * 0.5 + 0.5, 1.0);
     fragData2 = vec4(0.0, 0.0, 0.0, 1.0);
     fragData3 = vec4(0.0, 0.0, 0.0, 1.0);

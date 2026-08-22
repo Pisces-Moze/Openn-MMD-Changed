@@ -96,6 +96,18 @@ public final class SubMeshDrawHelper {
                                    int indexType,
                                    TextureResolver textureResolver,
                                    AlphaResolver alphaResolver) {
+        drawOutline(subMeshDataBuf, subMeshCount, indexElementSize, indexType,
+                textureResolver, alphaResolver, materialId -> true, materialId -> { });
+    }
+
+    public static void drawOutline(ByteBuffer subMeshDataBuf,
+                                   int subMeshCount,
+                                   int indexElementSize,
+                                   int indexType,
+                                   TextureResolver textureResolver,
+                                   AlphaResolver alphaResolver,
+                                   MaterialFilter materialFilter,
+                                   MaterialState materialState) {
         RenderSystem.activeTexture(GL46C.GL_TEXTURE0);
         int lastBoundTexture = -1;
 
@@ -107,9 +119,12 @@ public final class SubMeshDrawHelper {
             float alpha = subMeshDataBuf.getFloat(base + 12);
             boolean visible = subMeshDataBuf.get(base + 16) != 0;
 
-            if (!visible || alphaResolver.resolve(materialId, alpha) < 0.001f) {
+            if (!visible || !materialFilter.shouldDraw(materialId)
+                    || alphaResolver.resolve(materialId, alpha) < 0.001f) {
                 continue;
             }
+
+            materialState.apply(materialId);
 
             int textureId = textureResolver.resolve(materialId);
             if (textureId != lastBoundTexture) {

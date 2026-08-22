@@ -628,7 +628,10 @@ final class OpenGlModelRenderer {
                 target.indexElementSize,
                 target.indexType,
                 materialId -> target.mats[materialId].tex == 0 ? missingTextureId : target.mats[materialId].tex,
-                (materialId, baseAlpha) -> effectiveOutlineAlpha(target, materialId, baseAlpha));
+                (materialId, baseAlpha) -> effectiveOutlineAlpha(target, materialId, baseAlpha),
+                materialId -> ToonRenderHelper.shouldDrawOutline(target.mats[materialId]),
+                materialId -> ToonRenderHelper.setupOutlineMaterial(
+                        OpenGlModelInstance.toonShaderCpu, target.mats[materialId]));
         GL46C.glCullFace(GL46C.GL_BACK);
         RenderSystem.depthMask(true);
 
@@ -707,10 +710,10 @@ final class OpenGlModelRenderer {
             return 0.0f;
         }
         ModelMaterial material = target.mats[materialId];
-        if (material != null && material.isFacialFeature()) {
+        if (!ToonRenderHelper.shouldDrawOutline(material)) {
             return 0.0f;
         }
-        return target.effectiveMaterialAlpha(materialId, baseAlpha);
+        return target.effectiveMaterialAlpha(materialId, baseAlpha) * material.lilOutlineColor[3];
     }
 
     private static void applyLilToonMaterial(ToonShaderCpu shader, ModelMaterial m) {

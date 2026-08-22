@@ -3,6 +3,7 @@ package com.shiroha.mmdskin.render.backend.opengl;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.shiroha.mmdskin.compat.iris.IrisCompat;
+import com.shiroha.mmdskin.config.ConfigManager;
 import com.shiroha.mmdskin.render.material.ModelMaterial;
 import java.nio.ByteBuffer;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -69,6 +70,22 @@ final class MinecraftBufferedModelRenderer {
                     pose, normal, target, first, count, materialLight, overlay, alpha,
                     1.0f, 1.0f, 1.0f, false);
 
+            if (!shadowPass && material.lilUseOutline && !material.isFacialFeature()) {
+                float outlineWidth = material.lilOutlineWidth >= 0.0f
+                        ? material.lilOutlineWidth * 0.01f
+                        : ConfigManager.getToonOutlineWidth();
+                float outlineAlpha = alpha * material.lilOutlineColor[3];
+                if (outlineWidth > 0.000001f && outlineAlpha > 0.001f) {
+                    ResourceLocation outlineTexture = material.minecraftOutlineTexture != null
+                            ? material.minecraftOutlineTexture : texture;
+                    emitOutlineTriangles(buffers.getBuffer(PmxRenderTypes.pmxOutline(outlineTexture)),
+                            pose, normal, target, first, count, FULL_BRIGHT,
+                            outlineAlpha, outlineWidth,
+                            material.lilOutlineColor[0], material.lilOutlineColor[1],
+                            material.lilOutlineColor[2]);
+                }
+            }
+
             if (!shadowPass && material.hasExplicitEmissionConfiguration()) {
                 for (ModelMaterial.MinecraftEmissionLayer layer : material.minecraftEmissionLayers) {
                     if (layer.texture == null || layer.strength <= 0.001f) continue;
@@ -112,6 +129,54 @@ final class MinecraftBufferedModelRenderer {
                     target.uv0Buffer, vertex, light, overlay, alpha,
                     red, green, blue, stableLightNormal);
         }
+    }
+
+    /** lilToon-style inverted hull: expand along authored normals and reverse winding. */
+    private static void emitOutlineTriangles(VertexConsumer output, Matrix4f pose, Matrix3f normal,
+                                             OpenGlModelInstance target, int first, int count,
+                                             int light, float alpha, float width,
+                                             float red, float green, float blue) {
+        int end = count - count % 3;
+        for (int i = 0; i < end; i += 3) {
+            int a = index(target.indexBuffer, first + i, target.indexElementSize);
+            int b = index(target.indexBuffer, first + i + 1, target.indexElementSize);
+            int c = index(target.indexBuffer, first + i + 2, target.indexElementSize);
+            emitOutline(output, pose, normal, target.posBuffer, target.norBuffer,
+                    target.uv0Buffer, a, light, alpha, width, red, green, blue);
+            emitOutline(output, pose, normal, target.posBuffer, target.norBuffer,
+                    target.uv0Buffer, c, light, alpha, width, red, green, blue);
+            emitOutline(output, pose, normal, target.posBuffer, target.norBuffer,
+                    target.uv0Buffer, b, light, alpha, width, red, green, blue);
+        }
+    }
+
+    private static void emitOutline(VertexConsumer output, Matrix4f pose, Matrix3f normal,
+                                    ByteBuffer positions, ByteBuffer normals, ByteBuffer uvs,
+                                    int vertex, int light, float alpha, float width,
+                                    float red, float green, float blue) {
+        int vector = vertex * 12;
+        int uv = vertex * 8;
+        float nx = normals.getFloat(vector);
+        float ny = normals.getFloat(vector + 4);
+        float nz = normals.getFloat(vector + 8);
+        float lengthSquared = nx * nx + ny * ny + nz * nz;
+        if (lengthSquared > 1.0E-8f) {
+            float inverseLength = (float) (1.0 / Math.sqrt(lengthSquared));
+            nx *= inverseLength;
+            ny *= inverseLength;
+            nz *= inverseLength;
+        }
+        output.vertex(pose,
+                        positions.getFloat(vector) + nx * width,
+                        positions.getFloat(vector + 4) + ny * width,
+                        positions.getFloat(vector + 8) + nz * width)
+                .color(channel(red), channel(green), channel(blue),
+                        Math.round(Math.min(1.0f, alpha) * 255.0f))
+                .uv(uvs.getFloat(uv), 1.0f - uvs.getFloat(uv + 4))
+                .overlayCoords(OverlayTexture.NO_OVERLAY)
+                .uv2(light)
+                .normal(normal, -nx, -ny, -nz)
+                .endVertex();
     }
 
     private static int index(ByteBuffer data, int index, int size) {

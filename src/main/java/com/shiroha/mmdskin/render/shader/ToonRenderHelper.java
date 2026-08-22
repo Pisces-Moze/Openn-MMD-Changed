@@ -4,6 +4,7 @@ import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferUploader;
 import com.shiroha.mmdskin.NativeFunc;
+import com.shiroha.mmdskin.render.material.ModelMaterial;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.TextureManager;
 import org.joml.Vector3f;
@@ -61,6 +62,22 @@ public class ToonRenderHelper {
             toonConfig.getOutlineColorG(),
             toonConfig.getOutlineColorB()
         );
+    }
+
+    /** Applies the per-material lilToon outline values after the global fallback defaults. */
+    public static void setupOutlineMaterial(ToonShaderBase shader, ModelMaterial material) {
+        float width = material.lilOutlineWidth >= 0.0f
+                ? material.lilOutlineWidth * 0.01f
+                : toonConfig.getOutlineWidth();
+        shader.setOutlineWidth(width);
+        shader.setOutlineColor(material.lilOutlineColor[0], material.lilOutlineColor[1],
+                material.lilOutlineColor[2]);
+    }
+
+    public static boolean shouldDrawOutline(ModelMaterial material) {
+        return material != null && material.lilUseOutline
+                && material.lilOutlineColor[3] > 0.001f
+                && !material.isFacialFeature();
     }
 
     public static void prepareRenderState(int vao) {
