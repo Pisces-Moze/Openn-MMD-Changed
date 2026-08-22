@@ -4,6 +4,7 @@ package com.shiroha.mmdskin.player.render;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.shiroha.mmdskin.bridge.runtime.NativeMatrixPort;
 import com.shiroha.mmdskin.config.ModelConfigData;
+import com.shiroha.mmdskin.config.ModelConfigManager;
 import com.shiroha.mmdskin.model.runtime.ManagedModel;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
@@ -128,7 +129,9 @@ public class ItemRenderHelper {
 
         applyConfiguredRotation(matrixStack, player, model, hand);
 
-        float baseScale = 10.0f * itemScale;
+        float configuredModelScale = ModelConfigManager
+                .getConfig(model.modelInstance().getModelName()).modelScale;
+        float baseScale = 0.9f * configuredModelScale * itemScale;
         matrixStack.scale(baseScale, baseScale, baseScale);
 
         ItemDisplayContext displayCtx = isMainHand

@@ -59,18 +59,18 @@ public final class FullbrightLayerShader {
     }
 
     public void use(FloatBuffer projection, FloatBuffer modelView) {
-        GL46C.glUseProgram(program);
         projection.position(0);
         modelView.position(0);
-        GL46C.glUniformMatrix4fv(projectionLocation, false, projection);
-        GL46C.glUniformMatrix4fv(modelViewLocation, false, modelView);
-        GL46C.glUniform1i(samplerLocation, 0);
+        GL46C.glProgramUniformMatrix4fv(program, projectionLocation, false, projection);
+        GL46C.glProgramUniformMatrix4fv(program, modelViewLocation, false, modelView);
+        GL46C.glProgramUniform1i(program, samplerLocation, 0);
+        GL46C.glUseProgram(program);
     }
 
     public void setAppearance(float intensity, float opacity, float depthBias) {
-        GL46C.glUniform1f(intensityLocation, intensity);
-        GL46C.glUniform1f(opacityLocation, opacity);
-        GL46C.glUniform1f(depthBiasLocation, depthBias);
+        GL46C.glProgramUniform1f(program, intensityLocation, intensity);
+        GL46C.glProgramUniform1f(program, opacityLocation, opacity);
+        GL46C.glProgramUniform1f(program, depthBiasLocation, depthBias);
     }
 
     public int positionLocation() {

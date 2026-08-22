@@ -147,115 +147,115 @@ public abstract class ToonShaderBase {
     public void setProjectionMatrix(FloatBuffer matrix) {
         if (projMatLocation >= 0) {
             matrix.position(0);
-            GL46C.glUniformMatrix4fv(projMatLocation, false, matrix);
+            GL46C.glProgramUniformMatrix4fv(mainProgram, projMatLocation, false, matrix);
         }
     }
 
     public void setModelViewMatrix(FloatBuffer matrix) {
         if (modelViewMatLocation >= 0) {
             matrix.position(0);
-            GL46C.glUniformMatrix4fv(modelViewMatLocation, false, matrix);
+            GL46C.glProgramUniformMatrix4fv(mainProgram, modelViewMatLocation, false, matrix);
         }
     }
 
     public void setSampler0(int textureUnit) {
         if (sampler0Location >= 0) {
-            GL46C.glUniform1i(sampler0Location, textureUnit);
+            GL46C.glProgramUniform1i(mainProgram, sampler0Location, textureUnit);
         }
     }
 
     public void setLightIntensity(float intensity) {
         if (lightIntensityLocation >= 0) {
-            GL46C.glUniform1f(lightIntensityLocation, intensity);
+            GL46C.glProgramUniform1f(mainProgram, lightIntensityLocation, intensity);
         }
     }
 
     public void setToonLevels(int levels) {
         if (toonLevelsLocation >= 0) {
-            GL46C.glUniform1i(toonLevelsLocation, Math.max(2, Math.min(5, levels)));
+            GL46C.glProgramUniform1i(mainProgram, toonLevelsLocation, Math.max(2, Math.min(5, levels)));
         }
     }
 
     public void setRimLight(float power, float intensity) {
         if (rimPowerLocation >= 0) {
-            GL46C.glUniform1f(rimPowerLocation, power);
+            GL46C.glProgramUniform1f(mainProgram, rimPowerLocation, power);
         }
         if (rimIntensityLocation >= 0) {
-            GL46C.glUniform1f(rimIntensityLocation, intensity);
+            GL46C.glProgramUniform1f(mainProgram, rimIntensityLocation, intensity);
         }
     }
 
     public void setShadowColor(float r, float g, float b) {
         if (shadowColorLocation >= 0) {
-            GL46C.glUniform3f(shadowColorLocation, r, g, b);
+            GL46C.glProgramUniform3f(mainProgram, shadowColorLocation, r, g, b);
         }
     }
 
     public void setSpecular(float power, float intensity) {
         if (specularPowerLocation >= 0) {
-            GL46C.glUniform1f(specularPowerLocation, power);
+            GL46C.glProgramUniform1f(mainProgram, specularPowerLocation, power);
         }
         if (specularIntensityLocation >= 0) {
-            GL46C.glUniform1f(specularIntensityLocation, intensity);
+            GL46C.glProgramUniform1f(mainProgram, specularIntensityLocation, intensity);
         }
     }
 
     public void setLightDirection(float x, float y, float z) {
         if (lightDirLocation >= 0) {
-            GL46C.glUniform3f(lightDirLocation, x, y, z);
+            GL46C.glProgramUniform3f(mainProgram, lightDirLocation, x, y, z);
         }
     }
 
     public void setAlphaCutoff(float cutoff) {
         if (alphaCutoffLocation >= 0) {
-            GL46C.glUniform1f(alphaCutoffLocation, cutoff);
+            GL46C.glProgramUniform1f(mainProgram, alphaCutoffLocation, cutoff);
         }
     }
 
     public void setMaterialLighting(float unlit, float emission) {
         if (materialUnlitLocation >= 0) {
-            GL46C.glUniform1f(materialUnlitLocation, unlit);
+            GL46C.glProgramUniform1f(mainProgram, materialUnlitLocation, unlit);
         }
         if (emissionStrengthLocation >= 0) {
-            GL46C.glUniform1f(emissionStrengthLocation, emission);
+            GL46C.glProgramUniform1f(mainProgram, emissionStrengthLocation, emission);
         }
     }
 
     public void setOutlineProjectionMatrix(FloatBuffer matrix) {
         if (outlineProjMatLocation >= 0) {
             matrix.position(0);
-            GL46C.glUniformMatrix4fv(outlineProjMatLocation, false, matrix);
+            GL46C.glProgramUniformMatrix4fv(outlineProgram, outlineProjMatLocation, false, matrix);
         }
     }
 
     public void setOutlineModelViewMatrix(FloatBuffer matrix) {
         if (outlineModelViewMatLocation >= 0) {
             matrix.position(0);
-            GL46C.glUniformMatrix4fv(outlineModelViewMatLocation, false, matrix);
+            GL46C.glProgramUniformMatrix4fv(outlineProgram, outlineModelViewMatLocation, false, matrix);
         }
     }
 
     public void setOutlineWidth(float width) {
         if (outlineWidthLocation >= 0) {
-            GL46C.glUniform1f(outlineWidthLocation, width);
+            GL46C.glProgramUniform1f(outlineProgram, outlineWidthLocation, width);
         }
     }
 
     public void setOutlineColor(float r, float g, float b) {
         if (outlineColorLocation >= 0) {
-            GL46C.glUniform3f(outlineColorLocation, r, g, b);
+            GL46C.glProgramUniform3f(outlineProgram, outlineColorLocation, r, g, b);
         }
     }
 
     public void setOutlineSampler0(int textureUnit) {
         if (outlineSampler0Location >= 0) {
-            GL46C.glUniform1i(outlineSampler0Location, textureUnit);
+            GL46C.glProgramUniform1i(outlineProgram, outlineSampler0Location, textureUnit);
         }
     }
 
     public void setOutlineAlphaCutoff(float cutoff) {
         if (outlineAlphaCutoffLocation >= 0) {
-            GL46C.glUniform1f(outlineAlphaCutoffLocation, cutoff);
+            GL46C.glProgramUniform1f(outlineProgram, outlineAlphaCutoffLocation, cutoff);
         }
     }
 

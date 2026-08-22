@@ -2415,7 +2415,15 @@ impl MmdModel {
         for root in 0..count {
             let Some(kind) = kinds[root] else { continue; };
             let parent = self.bone_manager.get_bone(root).map(|b| b.parent_index).unwrap_or(-1);
-            if parent >= 0 && kinds.get(parent as usize).copied().flatten() == Some(kind) { continue; }
+            let child_count = self.bone_manager.children_of(root).iter()
+                .filter(|child| kinds.get(**child).copied().flatten() == Some(kind)).count();
+            if (parent < 0 || kinds.get(parent as usize).copied().flatten() != Some(kind))
+                && child_count > 1 { continue; }
+            if parent >= 0 && kinds.get(parent as usize).copied().flatten() == Some(kind) {
+                let siblings = self.bone_manager.children_of(parent as usize).iter()
+                    .filter(|child| kinds.get(**child).copied().flatten() == Some(kind)).count();
+                if siblings <= 1 { continue; }
+            }
             let mut nodes = Vec::new();
             let mut current = root;
             loop {
