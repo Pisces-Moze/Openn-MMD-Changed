@@ -82,19 +82,16 @@ final class OpenGlModelRenderer {
     }
 
     private static boolean initializeToonShaderIfNeeded() {
-        if (!ConfigManager.isToonRenderingEnabled()) {
-            return false;
-        }
-
         if (OpenGlModelInstance.toonShaderCpu == null) {
             synchronized (OpenGlModelInstance.class) {
                 if (OpenGlModelInstance.toonShaderCpu == null) {
                     ToonShaderCpu shader = new LilToonShaderCpu();
                     if (!shader.init()) {
-                        logger.warn("ToonShaderCpu 初始化失败");
+                        logger.warn("lilToon compatibility shader initialization failed; using standard renderer");
                         return false;
                     }
                     OpenGlModelInstance.toonShaderCpu = shader;
+                    logger.info("lilToon compatibility renderer enabled (CPU/OpenGL backend)");
                 }
             }
         }

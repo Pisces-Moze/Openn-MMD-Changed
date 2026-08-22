@@ -105,18 +105,16 @@ final class GpuSkinningModelRenderer {
     }
 
     private static boolean initializeToonShaderIfNeeded() {
-        if (!ConfigManager.isToonRenderingEnabled()) {
-            return false;
-        }
         if (GpuSkinningModelInstance.toonShaderCpu == null) {
             synchronized (GpuSkinningModelInstance.class) {
                 if (GpuSkinningModelInstance.toonShaderCpu == null) {
                     ToonShaderCpu shader = new LilToonShaderCpu();
                     if (!shader.init()) {
-                        logger.warn("ToonShaderCpu initialization failed, falling back to standard shading");
+                        logger.warn("lilToon compatibility shader initialization failed; using standard renderer");
                         return false;
                     }
                     GpuSkinningModelInstance.toonShaderCpu = shader;
+                    logger.info("lilToon compatibility renderer enabled (GPU skinning backend)");
                 }
             }
         }
