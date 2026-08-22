@@ -60,7 +60,9 @@ final class OpenGlModelRenderer {
         nativeBackend.batchGetSubMeshData(modelHandle, target.subMeshDataBuf);
         RenderPerformanceProfiler.get().endTimer(RenderPerformanceProfiler.SECTION_SUB_MESH_FETCH, subMeshTimer);
 
-        boolean useToon = initializeToonShaderIfNeeded();
+        // Preserve the shader pack's entity/shadow program so MMD meshes can
+        // cast and receive Iris shadows instead of bypassing its shadow buffers.
+        boolean useToon = !IrisCompat.isIrisShaderActive() && initializeToonShaderIfNeeded();
         boolean hurt = entityIn instanceof LivingEntity living && living.hurtTime > 0;
         if (useToon) {
             long drawTimer = RenderPerformanceProfiler.get().startTimer();
@@ -410,6 +412,9 @@ final class OpenGlModelRenderer {
     }
 
     private static void renderFullbrightLayers(OpenGlModelInstance target) {
+        if (IrisCompat.isRenderingShadows()) {
+            return;
+        }
         FullbrightLayerShader shader = FullbrightLayerShader.getOrCreate();
         if (shader == null) {
             return;

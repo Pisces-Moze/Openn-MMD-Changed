@@ -59,7 +59,9 @@ final class GpuSkinningModelRenderer {
 
         updateGpuStateIfDirty(target, nativeBackend, modelHandle);
 
-        boolean useToon = initializeToonShaderIfNeeded();
+        // Preserve the shader pack's entity/shadow program so MMD meshes can
+        // cast and receive Iris shadows instead of bypassing its shadow buffers.
+        boolean useToon = !IrisCompat.isIrisShaderActive() && initializeToonShaderIfNeeded();
         boolean hurt = entityIn instanceof LivingEntity living && living.hurtTime > 0;
 
         BufferUploader.reset();
@@ -438,6 +440,9 @@ final class GpuSkinningModelRenderer {
     }
 
     private static void renderFullbrightLayers(GpuSkinningModelInstance target) {
+        if (IrisCompat.isRenderingShadows()) {
+            return;
+        }
         FullbrightLayerShader shader = FullbrightLayerShader.getOrCreate();
         if (shader == null) {
             return;
