@@ -23,6 +23,10 @@ public abstract class ToonShaderBase {
     protected static final String OUTLINE_FRAGMENT_SHADER_BODY =
             AssetsUtil.getAssetsAsString("shader/toon_outline_body.frag.glsl");
 
+    protected String getMainFragmentShader() {
+        return MAIN_FRAGMENT_SHADER_BODY;
+    }
+
     protected int projMatLocation = -1;
     protected int modelViewMatLocation = -1;
     protected int sampler0Location = -1;
@@ -37,6 +41,11 @@ public abstract class ToonShaderBase {
     protected int alphaCutoffLocation = -1;
     protected int materialUnlitLocation = -1;
     protected int emissionStrengthLocation = -1;
+    protected int shadowBorderLocation = -1;
+    protected int shadowBlurLocation = -1;
+    protected int matCapStrengthLocation = -1;
+    protected int rimColorLocation = -1;
+    protected int hurtFactorLocation = -1;
 
     protected int outlineProjMatLocation = -1;
     protected int outlineModelViewMatLocation = -1;
@@ -65,7 +74,7 @@ public abstract class ToonShaderBase {
 
         try {
 
-            mainProgram = compileProgram(getMainVertexShader(), MAIN_FRAGMENT_SHADER_BODY,
+            mainProgram = compileProgram(getMainVertexShader(), getMainFragmentShader(),
                                         getShaderName() + "主着色器");
             if (mainProgram == 0) return false;
 
@@ -108,6 +117,11 @@ public abstract class ToonShaderBase {
         alphaCutoffLocation = GL46C.glGetUniformLocation(mainProgram, "AlphaCutoff");
         materialUnlitLocation = GL46C.glGetUniformLocation(mainProgram, "MaterialUnlit");
         emissionStrengthLocation = GL46C.glGetUniformLocation(mainProgram, "EmissionStrength");
+        shadowBorderLocation = GL46C.glGetUniformLocation(mainProgram, "ShadowBorder");
+        shadowBlurLocation = GL46C.glGetUniformLocation(mainProgram, "ShadowBlur");
+        matCapStrengthLocation = GL46C.glGetUniformLocation(mainProgram, "MatCapStrength");
+        rimColorLocation = GL46C.glGetUniformLocation(mainProgram, "RimColor");
+        hurtFactorLocation = GL46C.glGetUniformLocation(mainProgram, "HurtFactor");
 
         outlineProjMatLocation = GL46C.glGetUniformLocation(outlineProgram, "ProjMat");
         outlineModelViewMatLocation = GL46C.glGetUniformLocation(outlineProgram, "ModelViewMat");
@@ -219,6 +233,22 @@ public abstract class ToonShaderBase {
         if (emissionStrengthLocation >= 0) {
             GL46C.glUniform1f(emissionStrengthLocation, emission);
         }
+    }
+
+    public void setLilToonMaterial(float unlit, float emission, float matCapStrength) {
+        setMaterialLighting(unlit, emission);
+        if (matCapStrengthLocation >= 0) {
+            GL46C.glUniform1f(matCapStrengthLocation, matCapStrength);
+        }
+    }
+
+    public void setLilToonStyle(float shadowBorder, float shadowBlur, float matCapStrength,
+                                float rimR, float rimG, float rimB, float hurtFactor) {
+        if (shadowBorderLocation >= 0) GL46C.glUniform1f(shadowBorderLocation, shadowBorder);
+        if (shadowBlurLocation >= 0) GL46C.glUniform1f(shadowBlurLocation, shadowBlur);
+        if (matCapStrengthLocation >= 0) GL46C.glUniform1f(matCapStrengthLocation, matCapStrength);
+        if (rimColorLocation >= 0) GL46C.glUniform3f(rimColorLocation, rimR, rimG, rimB);
+        if (hurtFactorLocation >= 0) GL46C.glUniform1f(hurtFactorLocation, hurtFactor);
     }
 
     public void setOutlineProjectionMatrix(FloatBuffer matrix) {

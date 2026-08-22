@@ -38,6 +38,25 @@ Unity 的 ShaderLab 编译器、宏、灯光结构、摄像机变量与材质序
 | Transparent / Cutout | 分材质透明排序、裁剪阈值和深度写入 |
 | Facial layers | 眼白、虹膜、高光分层及正反面/深度控制 |
 
+## 当前实现状态
+
+第一版运行时移植位于：
+
+- `src/main/java/com/shiroha/mmdskin/render/shader/LilToonShaderCpu.java`
+- `src/main/resources/assets/mmdskin/shader/liltoon_compat_main.frag.glsl`
+
+启用原有 Toon Rendering 开关时，CPU/OpenGL 与 GPU skinning 后端都会实例化
+`LilToonShaderCpu`。初始化失败时仍沿用现有标准渲染回退机制。
+
+当前已经实现卡通阴影边界、稳定基础色、程序化 MatCap、边缘光、分材质
+unlit、青色荧光识别和受伤变红。MatCap 强度按 PMX 材质名/贴图名自动分组：
+头发较强、衣服中等、身体较弱、面部最弱。独立 `_emi.png` 发光贴图仍由
+现有 fullbright pass 负责。
+
+尚未实现的 Unity 专属功能包括多层 Main2nd/Main3rd、法线贴图、各向异性、
+AudioLink、距离淡出、宝石/毛发专用 pass 和 Unity 光照探针。它们需要按
+Minecraft 的资源及绘制生命周期逐项移植。
+
 ## 安全原则
 
 1. 新渲染器先以可关闭的实验后端接入，默认不替换稳定后端。

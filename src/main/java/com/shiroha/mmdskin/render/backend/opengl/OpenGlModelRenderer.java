@@ -8,6 +8,7 @@ import com.shiroha.mmdskin.config.ConfigManager;
 import com.shiroha.mmdskin.compat.iris.IrisCompat;
 import com.shiroha.mmdskin.render.bootstrap.ClientRenderRuntime;
 import com.shiroha.mmdskin.render.shader.ToonShaderCpu;
+import com.shiroha.mmdskin.render.shader.LilToonShaderCpu;
 import com.shiroha.mmdskin.render.shader.ToonRenderHelper;
 import com.shiroha.mmdskin.render.shader.FullbrightLayerShader;
 import com.shiroha.mmdskin.render.pipeline.LightingHelper;
@@ -65,7 +66,7 @@ final class OpenGlModelRenderer {
         if (useToon) {
             long drawTimer = RenderPerformanceProfiler.get().startTimer();
             try {
-                renderToon(target, minecraft, light.intensity(), deliverStack);
+                renderToon(target, minecraft, light.intensity(), deliverStack, hurt);
             } finally {
                 RenderPerformanceProfiler.get().endTimer(RenderPerformanceProfiler.SECTION_DRAW, drawTimer);
             }
@@ -88,7 +89,7 @@ final class OpenGlModelRenderer {
         if (OpenGlModelInstance.toonShaderCpu == null) {
             synchronized (OpenGlModelInstance.class) {
                 if (OpenGlModelInstance.toonShaderCpu == null) {
-                    ToonShaderCpu shader = new ToonShaderCpu();
+                    ToonShaderCpu shader = new LilToonShaderCpu();
                     if (!shader.init()) {
                         logger.warn("ToonShaderCpu 初始化失败");
                         return false;
@@ -493,7 +494,8 @@ final class OpenGlModelRenderer {
         RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
     }
 
-    private static void renderToon(OpenGlModelInstance target, Minecraft minecraft, float lightIntensity, PoseStack deliverStack) {
+    private static void renderToon(OpenGlModelInstance target, Minecraft minecraft, float lightIntensity,
+                                   PoseStack deliverStack, boolean hurt) {
         BufferUploader.reset();
         GL46C.glBindVertexArray(target.vertexArrayObject);
         RenderSystem.enableBlend();
@@ -540,7 +542,7 @@ final class OpenGlModelRenderer {
         RenderSystem.getProjectionMatrix().get(target.projMatBuff);
         GL46C.glBindBuffer(GL46C.GL_ELEMENT_ARRAY_BUFFER, target.indexBufferObject);
 
-        renderToonMainPass(target, minecraft, lightIntensity);
+        renderToonMainPass(target, minecraft, lightIntensity, hurt);
         renderFullbrightLayers(target);
 
         if (OpenGlModelInstance.toonConfig.isOutlineEnabled()) {
@@ -602,7 +604,8 @@ final class OpenGlModelRenderer {
         if (uvLoc != -1) GL46C.glDisableVertexAttribArray(uvLoc);
     }
 
-    private static void renderToonMainPass(OpenGlModelInstance target, Minecraft minecraft, float lightIntensity) {
+    private static void renderToonMainPass(OpenGlModelInstance target, Minecraft minecraft,
+                                           float lightIntensity, boolean hurt) {
         OpenGlModelInstance.toonShaderCpu.useMain();
         int posLoc = OpenGlModelInstance.toonShaderCpu.getPositionLocation();
         int norLoc = OpenGlModelInstance.toonShaderCpu.getNormalLocation();
@@ -626,7 +629,8 @@ final class OpenGlModelRenderer {
 
         OpenGlModelInstance.toonShaderCpu.setProjectionMatrix(target.projMatBuff);
         OpenGlModelInstance.toonShaderCpu.setModelViewMatrix(target.modelViewMatBuff);
-        ToonRenderHelper.setupToonUniforms(OpenGlModelInstance.toonShaderCpu, lightIntensity, target.light0Direction);
+        ToonRenderHelper.setupToonUniforms(
+                OpenGlModelInstance.toonShaderCpu, lightIntensity, target.light0Direction, hurt);
 
         drawToonSubMeshes(target, minecraft, lightIntensity);
 
@@ -649,8 +653,8 @@ final class OpenGlModelRenderer {
                 materialId -> !target.mats[materialId].isFacialFeature(),
                 materialId -> {
                     ModelMaterial material = target.mats[materialId];
-                    OpenGlModelInstance.toonShaderCpu.setMaterialLighting(
-                            material.unlitStrength(), 0.0f);
+                    OpenGlModelInstance.toonShaderCpu.setLilToonMaterial(
+                            material.unlitStrength(), 0.0f, material.matCapStrength());
                 });
         SubMeshDrawHelper.draw(
                 target.subMeshDataBuf,
@@ -662,8 +666,8 @@ final class OpenGlModelRenderer {
                 materialId -> target.mats[materialId].isFacialFeature(),
                 materialId -> {
                     ModelMaterial material = target.mats[materialId];
-                    OpenGlModelInstance.toonShaderCpu.setMaterialLighting(
-                            material.unlitStrength(), 0.0f);
+                    OpenGlModelInstance.toonShaderCpu.setLilToonMaterial(
+                            material.unlitStrength(), 0.0f, material.matCapStrength());
                 });
     }
 

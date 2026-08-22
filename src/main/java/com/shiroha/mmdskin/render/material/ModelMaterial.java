@@ -30,6 +30,14 @@ public class ModelMaterial {
         return isFacialFeature() ? 0.92f : 0.0f;
     }
 
+    /** Material-name profile used by the lilToon compatibility renderer. */
+    public float matCapStrength() {
+        if (isFacialFeature()) return 0.035f;
+        if (containsAny(name, texturePath, "hair", "髪", "头发", "ヘア")) return 0.22f;
+        if (containsAny(name, texturePath, "cloth", "dress", "衣", "服")) return 0.12f;
+        return 0.075f;
+    }
+
     public static String emissionTexturePath(String baseTexturePath) {
         if (baseTexturePath == null || baseTexturePath.isEmpty()) {
             return "";
@@ -68,6 +76,15 @@ public class ModelMaterial {
             if (normalized.contains(token)) {
                 return true;
             }
+        }
+        return false;
+    }
+
+    private static boolean containsAny(String first, String second, String... tokens) {
+        String normalized = ((first == null ? "" : first) + " "
+                + (second == null ? "" : second)).toLowerCase(Locale.ROOT);
+        for (String token : tokens) {
+            if (normalized.contains(token.toLowerCase(Locale.ROOT))) return true;
         }
         return false;
     }

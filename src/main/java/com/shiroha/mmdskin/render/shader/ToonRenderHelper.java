@@ -17,7 +17,8 @@ public class ToonRenderHelper {
     private static final ToonConfig toonConfig = ToonConfig.getInstance();
     private static final float ALPHA_CUTOFF = 0.1f;
 
-    public static void setupToonUniforms(ToonShaderBase shader, float lightIntensity, Vector3f lightDirection) {
+    public static void setupToonUniforms(ToonShaderBase shader, float lightIntensity,
+                                         Vector3f lightDirection, boolean hurt) {
         float lightX = 0.35f;
         float lightY = 0.85f;
         float lightZ = -0.4f;
@@ -45,6 +46,10 @@ public class ToonRenderHelper {
         shader.setSpecular(toonConfig.getSpecularPower(), toonConfig.getSpecularIntensity());
         shader.setLightDirection(lightX, lightY, lightZ);
         shader.setAlphaCutoff(ALPHA_CUTOFF);
+        shader.setLilToonStyle(
+                0.52f, 0.075f, 0.10f,
+                0.30f, 0.78f, 0.92f,
+                hurt ? 1.0f : 0.0f);
     }
 
     public static void setupOutlineUniforms(ToonShaderBase shader) {

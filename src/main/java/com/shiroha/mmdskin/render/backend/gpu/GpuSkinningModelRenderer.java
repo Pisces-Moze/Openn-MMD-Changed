@@ -15,6 +15,7 @@ import com.shiroha.mmdskin.render.shader.SkinningComputeShader;
 import com.shiroha.mmdskin.render.shader.FullbrightLayerShader;
 import com.shiroha.mmdskin.render.shader.ToonRenderHelper;
 import com.shiroha.mmdskin.render.shader.ToonShaderCpu;
+import com.shiroha.mmdskin.render.shader.LilToonShaderCpu;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.client.renderer.texture.TextureManager;
@@ -80,7 +81,7 @@ final class GpuSkinningModelRenderer {
         long drawTimer = RenderPerformanceProfiler.get().startTimer();
         try {
             if (useToon && GpuSkinningModelInstance.toonShaderCpu != null && GpuSkinningModelInstance.toonShaderCpu.isInitialized()) {
-                renderToon(target, minecraft, light.intensity());
+                renderToon(target, minecraft, light.intensity(), hurt);
             } else {
                 renderNormal(target, minecraft, light.intensity(), light.blockLight(), light.skyLight(),
                         light.skyDarken(), hurt);
@@ -110,7 +111,7 @@ final class GpuSkinningModelRenderer {
         if (GpuSkinningModelInstance.toonShaderCpu == null) {
             synchronized (GpuSkinningModelInstance.class) {
                 if (GpuSkinningModelInstance.toonShaderCpu == null) {
-                    ToonShaderCpu shader = new ToonShaderCpu();
+                    ToonShaderCpu shader = new LilToonShaderCpu();
                     if (!shader.init()) {
                         logger.warn("ToonShaderCpu initialization failed, falling back to standard shading");
                         return false;
@@ -287,7 +288,8 @@ final class GpuSkinningModelRenderer {
         target.lastSkyBrightness = skyBrightness;
     }
 
-    private static void renderToon(GpuSkinningModelInstance target, Minecraft minecraft, float lightIntensity) {
+    private static void renderToon(GpuSkinningModelInstance target, Minecraft minecraft,
+                                   float lightIntensity, boolean hurt) {
         if (IrisCompat.isIrisShaderActive()) {
             ShaderInstance irisShader = RenderSystem.getShader();
             if (irisShader != null) {
@@ -320,7 +322,8 @@ final class GpuSkinningModelRenderer {
 
         GpuSkinningModelInstance.toonShaderCpu.setProjectionMatrix(target.projMatBuff);
         GpuSkinningModelInstance.toonShaderCpu.setModelViewMatrix(target.modelViewMatBuff);
-        ToonRenderHelper.setupToonUniforms(GpuSkinningModelInstance.toonShaderCpu, lightIntensity, target.light0Direction);
+        ToonRenderHelper.setupToonUniforms(
+                GpuSkinningModelInstance.toonShaderCpu, lightIntensity, target.light0Direction, hurt);
 
         drawToonSubMeshes(target, minecraft, lightIntensity);
 
@@ -503,8 +506,8 @@ final class GpuSkinningModelRenderer {
                 materialId -> !target.mats[materialId].isFacialFeature(),
                 materialId -> {
                     ModelMaterial material = target.mats[materialId];
-                    GpuSkinningModelInstance.toonShaderCpu.setMaterialLighting(
-                            material.unlitStrength(), 0.0f);
+                    GpuSkinningModelInstance.toonShaderCpu.setLilToonMaterial(
+                            material.unlitStrength(), 0.0f, material.matCapStrength());
                 });
         SubMeshDrawHelper.draw(
                 target.subMeshDataBuf,
@@ -516,8 +519,8 @@ final class GpuSkinningModelRenderer {
                 materialId -> target.mats[materialId].isFacialFeature(),
                 materialId -> {
                     ModelMaterial material = target.mats[materialId];
-                    GpuSkinningModelInstance.toonShaderCpu.setMaterialLighting(
-                            material.unlitStrength(), 0.0f);
+                    GpuSkinningModelInstance.toonShaderCpu.setLilToonMaterial(
+                            material.unlitStrength(), 0.0f, material.matCapStrength());
                 });
     }
 
