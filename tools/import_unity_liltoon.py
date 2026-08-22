@@ -173,6 +173,12 @@ def parse_material(path: Path, assets: Path, index: dict[str, Path],
         # when saturated cyan areas of the main texture are fluorescent.
         "cyanEmissionStrength": 0.0,
         "emissionTexture": emission_name or "",
+        "emissionLayers": ([{
+            "texture": emission_name,
+            "maskMode": "texture",
+            "strength": floats.get("_EmissionBlend", 1.0),
+            "color": emission_color,
+        }] if emission_name else []),
         "emissionColor": emission_color,
         "normalTexture": normal_name or "",
         "normalScale": floats.get("_BumpScale", 1.0),

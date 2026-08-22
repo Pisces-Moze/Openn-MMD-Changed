@@ -115,6 +115,8 @@ public final class LilToonMaterialConfig {
         public Float cyanEmissionStrength;
         public String emissionTexture;
         public float[] emissionColor;
+        /** Optional ordered emission passes. Allows explicit and color-filtered masks together. */
+        public List<EmissionLayerProfile> emissionLayers = List.of();
         public String normalTexture;
         public Float normalScale;
         public String cull;
@@ -123,5 +125,18 @@ public final class LilToonMaterialConfig {
         public Boolean useOutline;
         public Float outlineWidth;
         public float[] outlineColor;
+    }
+
+    public static final class EmissionLayerProfile {
+        /** Relative texture path, or "$base" to filter the material's base texture. */
+        public String texture = "$base";
+        /** texture, cyan, or color. */
+        public String maskMode = "texture";
+        public Float strength = 1.0f;
+        public float[] color = {1.0f, 1.0f, 1.0f, 1.0f};
+        public float[] maskColor = {0.0f, 1.0f, 1.0f};
+        public Float maskTolerance = 0.5f;
+        public Float minBrightness = 0.45f;
+        public Float minSaturation = 0.25f;
     }
 }

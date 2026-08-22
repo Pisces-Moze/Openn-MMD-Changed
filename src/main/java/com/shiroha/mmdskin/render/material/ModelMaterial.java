@@ -1,6 +1,8 @@
 package com.shiroha.mmdskin.render.material;
 
 import java.util.Locale;
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.resources.ResourceLocation;
 
 /** MMD 模型材质定义。 */
@@ -41,6 +43,8 @@ public class ModelMaterial {
     public float lilCyanEmissionStrength = 0.0f;
     public String lilEmissionTexture = "";
     public final float[] lilEmissionColor = {1.0f, 1.0f, 1.0f};
+    public final List<EmissionLayerDefinition> lilEmissionLayers = new ArrayList<>();
+    public final List<MinecraftEmissionLayer> minecraftEmissionLayers = new ArrayList<>();
     public String lilNormalTexture = "";
     public float lilNormalScale = 1.0f;
     public String lilCull = "model";
@@ -94,6 +98,13 @@ public class ModelMaterial {
         if (p.cyanEmissionStrength != null) lilCyanEmissionStrength = Math.max(0.0f, p.cyanEmissionStrength);
         if (p.emissionTexture != null) lilEmissionTexture = p.emissionTexture;
         copyRgb(p.emissionColor, lilEmissionColor);
+        lilEmissionLayers.clear();
+        if (p.emissionLayers != null) {
+            for (LilToonMaterialConfig.EmissionLayerProfile layer : p.emissionLayers) {
+                if (layer == null) continue;
+                lilEmissionLayers.add(new EmissionLayerDefinition(layer));
+            }
+        }
         if (p.normalTexture != null) lilNormalTexture = p.normalTexture;
         if (p.normalScale != null) lilNormalScale = p.normalScale;
         if (p.cull != null) lilCull = p.cull;
@@ -115,6 +126,40 @@ public class ModelMaterial {
 
     private static float clamp01(float value) {
         return Math.max(0.0f, Math.min(1.0f, value));
+    }
+
+    public static final class EmissionLayerDefinition {
+        public final String texture;
+        public final String maskMode;
+        public final float strength;
+        public final float[] color = {1.0f, 1.0f, 1.0f};
+        public final float[] maskColor = {0.0f, 1.0f, 1.0f};
+        public final float maskTolerance;
+        public final float minBrightness;
+        public final float minSaturation;
+
+        private EmissionLayerDefinition(LilToonMaterialConfig.EmissionLayerProfile source) {
+            texture = source.texture == null ? "$base" : source.texture;
+            maskMode = source.maskMode == null ? "texture" : source.maskMode;
+            strength = Math.max(0.0f, source.strength == null ? 1.0f : source.strength);
+            copyRgb(source.color, color);
+            copyRgb(source.maskColor, maskColor);
+            maskTolerance = clamp01(source.maskTolerance == null ? 0.5f : source.maskTolerance);
+            minBrightness = clamp01(source.minBrightness == null ? 0.45f : source.minBrightness);
+            minSaturation = clamp01(source.minSaturation == null ? 0.25f : source.minSaturation);
+        }
+    }
+
+    public static final class MinecraftEmissionLayer {
+        public final ResourceLocation texture;
+        public final float strength;
+        public final float[] color;
+
+        public MinecraftEmissionLayer(ResourceLocation texture, float strength, float[] color) {
+            this.texture = texture;
+            this.strength = strength;
+            this.color = color.clone();
+        }
     }
 
     public static String emissionTexturePath(String baseTexturePath) {

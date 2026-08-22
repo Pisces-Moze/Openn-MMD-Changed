@@ -131,6 +131,7 @@ python tools/import_unity_liltoon.py `
 | `useRim` / `rimBorder` / `rimBlur` / `rimFresnelPower` / `rimIntensity` / `rimColor` | 边缘光 | 近似 |
 | `useMatCap` / `matCapStrength` | 视图空间程序化高光 | 近似；尚不采样 Unity MatCap 图 |
 | `useEmission` / `emissionTexture` / `emissionStrength` | 独立全亮发光图层 | 支持，加法混合 |
+| `emissionLayers` | 一个材质叠加多个明确贴图或颜色筛选发光层 | 完整，推荐新模型使用 |
 | `cyanEmissionStrength` | 旧实验程序的按颜色提取 | 仅兼容旧模型；新模型应制作明确的 Emission PNG |
 | `normalTexture` / `normalScale` | 法线贴图记录 | 已导入，尚未渲染 |
 | `cull` / `renderMode` / `alphaCutoff` | 剔除、透明模式、裁剪 | 部分兼容，复杂透明排序仍有限制 |
@@ -150,9 +151,39 @@ python tools/import_unity_liltoon.py `
 }
 ```
 
-`baseLightFloor` 推荐从 `0` 开始：深色风格化身体可用 `0.2`～`0.55`，极暗材质
-最多先试 `0.65`；设为 `1` 会接近无光照材质并削弱阴影。它不是发光，不使用
-Emission 蒙版。独立 Emission 使用 fullbright 附加层，在 Iris/Oculus 光影下仍
+同一个材质需要“眼睛贴图发光 + 主贴图中的青色涂层发光”时，可以叠加：
+
+```json
+"emissionLayers": [
+  {
+    "texture": "eyes_emission.png",
+    "maskMode": "texture",
+    "strength": 0.7
+  },
+  {
+    "texture": "$base",
+    "maskMode": "cyan",
+    "strength": 0.85,
+    "maskTolerance": 0.5,
+    "minBrightness": 0.45,
+    "minSaturation": 0.25
+  }
+]
+```
+
+- `texture`：相对模型目录的 PNG；`$base` 表示当前 PMX 材质的主贴图。
+- `maskMode: texture`：完全相信独立蒙版；黑色/透明区域不发光。
+- `maskMode: cyan`：只保留明亮、高饱和且接近青色的像素。
+- `maskMode: color`：使用 `maskColor: [r,g,b]` 筛选任意目标颜色。
+- `maskTolerance`、`minBrightness`、`minSaturation` 控制筛选范围。
+
+颜色筛选适合迁移阶段和色块清晰的贴图；正式发布仍优先手绘独立蒙版，这与 Changed
+原版 `EmissiveBodyLayer + RenderType.eyes` 的资源组织方式一致。
+
+`baseLightFloor` 推荐从 `0` 开始：深色风格化身体可用 `0.05`～`0.25`，只在确有
+需要时继续提高；设为 `1` 会接近无光照材质并削弱阴影。它通过提高基础层最低
+lightmap 亮度实现，不再重复绘制全亮基础贴图，因此不会形成全身发光附加层。
+独立 Emission 使用 fullbright 附加层，在 Iris/Oculus 光影下仍
 保持可见，但不会作为真实点光源照亮方块。基础层使用真正的 PMX 三角形
 `RenderType`，因此由当前光影包决定接收和投射阴影的具体效果。
 

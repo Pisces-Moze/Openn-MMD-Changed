@@ -24,10 +24,6 @@ final class PmxRenderTypes extends RenderType {
         return CACHE.computeIfAbsent(new Key(texture, Layer.BASE, blend, cull), PmxRenderTypes::create);
     }
 
-    static RenderType floor(ResourceLocation texture, boolean cull) {
-        return CACHE.computeIfAbsent(new Key(texture, Layer.FLOOR, Blend.TRANSLUCENT, cull), PmxRenderTypes::create);
-    }
-
     static RenderType emission(ResourceLocation texture, boolean cull) {
         return CACHE.computeIfAbsent(new Key(texture, Layer.EMISSION, Blend.ADDITIVE, cull), PmxRenderTypes::create);
     }
@@ -48,12 +44,6 @@ final class PmxRenderTypes extends RenderType {
                     .setLightmapState(LIGHTMAP)
                     .setOverlayState(OVERLAY)
                     .setWriteMaskState(COLOR_DEPTH_WRITE);
-            case FLOOR -> builder
-                    .setShaderState(RENDERTYPE_ENTITY_TRANSLUCENT_EMISSIVE_SHADER)
-                    .setTransparencyState(TRANSLUCENT_TRANSPARENCY)
-                    .setLightmapState(NO_LIGHTMAP)
-                    .setOverlayState(OVERLAY)
-                    .setWriteMaskState(COLOR_WRITE);
             case EMISSION -> builder
                     .setShaderState(RENDERTYPE_EYES_SHADER)
                     .setTransparencyState(ADDITIVE_TRANSPARENCY)
@@ -72,7 +62,7 @@ final class PmxRenderTypes extends RenderType {
                 builder.createCompositeState(false));
     }
 
-    private enum Layer { BASE, FLOOR, EMISSION }
+    private enum Layer { BASE, EMISSION }
 
     private enum Blend {
         OPAQUE, CUTOUT, TRANSLUCENT, ADDITIVE;

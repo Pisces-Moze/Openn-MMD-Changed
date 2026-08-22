@@ -142,16 +142,38 @@ final class OpenGlModelFactory {
                         }
                     }
                     if (mats[i].lilUseEmission) {
+                        for (ModelMaterial.EmissionLayerDefinition layer : mats[i].lilEmissionLayers) {
+                            String layerPath = "$base".equalsIgnoreCase(layer.texture)
+                                    ? texFilename : layer.texture;
+                            var layerTexture = MinecraftTextureRegistry.getFiltered(
+                                    layerPath, modelDir, layer.maskMode, layer.maskColor,
+                                    layer.maskTolerance, layer.minBrightness, layer.minSaturation);
+                            if (layerTexture != null && layer.strength > 0.0f) {
+                                mats[i].minecraftEmissionLayers.add(
+                                        new ModelMaterial.MinecraftEmissionLayer(
+                                                layerTexture, layer.strength, layer.color));
+                            }
+                        }
                         String configuredEmission = mats[i].configuredEmissionPath(modelDir);
-                        String emissivePath = configuredEmission.isEmpty()
-                                ? ModelMaterial.emissionTexturePath(texFilename)
-                                : configuredEmission;
-                        mats[i].minecraftEmissionTexture = MinecraftTextureRegistry.get(emissivePath, modelDir);
-                        TextureRepository.Texture emissiveTexture = TextureRepository.GetTexture(emissivePath);
-                        if (emissiveTexture != null) {
-                            mats[i].emissiveTex = emissiveTexture.tex;
-                            TextureRepository.addRef(emissivePath);
-                            texKeys.add(emissivePath);
+                        String emissivePath = configuredEmission;
+                        if (emissivePath.isEmpty() && mats[i].lilEmissionLayers.isEmpty()) {
+                            emissivePath = ModelMaterial.emissionTexturePath(texFilename);
+                        }
+                        if (!emissivePath.isEmpty()) {
+                            mats[i].minecraftEmissionTexture = MinecraftTextureRegistry.get(emissivePath, modelDir);
+                            TextureRepository.Texture emissiveTexture = TextureRepository.GetTexture(emissivePath);
+                            if (emissiveTexture != null) {
+                                mats[i].emissiveTex = emissiveTexture.tex;
+                                TextureRepository.addRef(emissivePath);
+                                texKeys.add(emissivePath);
+                            }
+                        }
+                        if (mats[i].minecraftEmissionLayers.isEmpty()
+                                && mats[i].minecraftEmissionTexture != null) {
+                            mats[i].minecraftEmissionLayers.add(
+                                    new ModelMaterial.MinecraftEmissionLayer(
+                                            mats[i].minecraftEmissionTexture,
+                                            mats[i].emissionStrength(), mats[i].lilEmissionColor));
                         }
                     }
                 }

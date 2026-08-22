@@ -6,6 +6,7 @@ import com.shiroha.mmdskin.compat.iris.IrisCompat;
 import com.shiroha.mmdskin.render.material.ModelMaterial;
 import java.nio.ByteBuffer;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.texture.TextureManager;
@@ -61,28 +62,23 @@ final class MinecraftBufferedModelRenderer {
                     ? material.minecraftTexture : MISSING;
             boolean cull = !bothFace && !"off".equalsIgnoreCase(material.lilCull);
 
+            float lightFloor = Math.max(material.baseLightFloor(), material.unlitStrength());
+            int materialLight = applyLightFloor(packedLight, lightFloor);
             emitTriangles(buffers.getBuffer(PmxRenderTypes.base(texture, cull,
                             material.lilRenderMode, material.lilAlphaCutoff)),
-                    pose, normal, target, first, count, packedLight, overlay, alpha,
+                    pose, normal, target, first, count, materialLight, overlay, alpha,
                     1.0f, 1.0f, 1.0f, false);
 
-            float lightFloor = Math.max(material.baseLightFloor(), material.unlitStrength());
-            if (!shadowPass && lightFloor > 0.001f) {
-                emitTriangles(buffers.getBuffer(PmxRenderTypes.floor(texture, cull)),
-                        pose, normal, target, first, count, FULL_BRIGHT,
-                        overlay, alpha * lightFloor, 1.0f, 1.0f, 1.0f, true);
-            }
-
-            if (!shadowPass && material.lilUseEmission
-                    && material.minecraftEmissionTexture != null
-                    && material.emissionStrength() > 0.001f) {
-                float glowAlpha = alpha * Math.min(1.0f, material.emissionStrength());
+            if (!shadowPass && material.lilUseEmission) {
+                for (ModelMaterial.MinecraftEmissionLayer layer : material.minecraftEmissionLayers) {
+                    if (layer.texture == null || layer.strength <= 0.001f) continue;
+                    float glowAlpha = alpha * Math.min(1.0f, layer.strength);
                 emitTriangles(buffers.getBuffer(PmxRenderTypes.emission(
-                                material.minecraftEmissionTexture, cull)),
+                                    layer.texture, cull)),
                         pose, normal, target, first, count, FULL_BRIGHT,
                         OverlayTexture.NO_OVERLAY, glowAlpha,
-                        material.lilEmissionColor[0], material.lilEmissionColor[1],
-                        material.lilEmissionColor[2], true);
+                            layer.color[0], layer.color[1], layer.color[2], true);
+                }
             }
         }
         stack.popPose();
@@ -157,5 +153,13 @@ final class MinecraftBufferedModelRenderer {
 
     private static int channel(float value) {
         return Math.round(Math.max(0.0f, Math.min(1.0f, value)) * 255.0f);
+    }
+
+    private static int applyLightFloor(int packedLight, float floor) {
+        if (floor <= 0.0f) return packedLight;
+        int minimum = Math.round(Math.min(1.0f, floor) * 15.0f);
+        return LightTexture.pack(
+                Math.max(LightTexture.block(packedLight), minimum),
+                Math.max(LightTexture.sky(packedLight), minimum));
     }
 }
