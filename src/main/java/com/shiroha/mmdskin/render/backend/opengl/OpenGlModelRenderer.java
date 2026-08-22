@@ -429,18 +429,6 @@ final class OpenGlModelRenderer {
         RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA,
                 GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
 
-        SubMeshDrawHelper.draw(
-                target.subMeshDataBuf,
-                target.subMeshCount,
-                target.indexElementSize,
-                target.indexType,
-                materialId -> target.mats[materialId].tex,
-                target::effectiveMaterialAlpha,
-                materialId -> target.mats[materialId].isFacialFeature(),
-                // Facial planes must stay at their real depth. Pulling them toward
-                // the camera lets eyes bleed through the back of the head.
-                materialId -> shader.setAppearance(1.08f, 1.0f, 0.0f));
-
         // Unity/lilToon emission masks commonly have an opaque black
         // background. Additive blending preserves the base texture.
         RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA,

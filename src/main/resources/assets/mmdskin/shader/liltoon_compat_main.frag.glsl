@@ -61,13 +61,14 @@ void main() {
             ? smoothstep(border - blur, border + blur, ndl)
             : 1.0;
     float environmentLight = clamp(LightIntensity, 0.0, 1.0);
-    // Avatar textures already contain their authored colour and painted shading.
-    // Never multiply that base below 1.0: dark blue/cyan fur otherwise collapses
-    // to visually black in Minecraft's already-dark framebuffer.  World light
-    // only adds a restrained toon highlight; rim and emission remain additive.
-    float litBand = shadowStep * mix(0.035, 0.11, environmentLight);
+    // The base layer follows Minecraft's environment light. Dedicated emission
+    // textures are rendered in a separate additive pass and remain fullbright.
+    float baseLight = mix(0.16, 1.0, environmentLight);
+    float litBand = shadowStep * mix(0.025, 0.10, environmentLight);
     vec3 lightTint = mix(clamp(ShadowColor, vec3(0.0), vec3(1.0)), vec3(1.0), 0.88);
-    vec3 color = albedo + albedo * lightTint * litBand * (1.0 - saturate(MaterialUnlit));
+    float materialLight = mix(baseLight, 1.0, saturate(MaterialUnlit));
+    vec3 color = albedo * materialLight
+            + albedo * lightTint * litBand * (1.0 - saturate(MaterialUnlit));
 
     // View-space MatCap approximation. This requires no Unity reflection probe
     // and remains deterministic in inventory and first-person rendering.
@@ -88,16 +89,6 @@ void main() {
             fresnel);
     float rim = (UseRim != 0 ? rimEdge : 0.0) * RimIntensity;
     color += RimColor * rim;
-
-    // Emission is additive and independent of world darkness, matching the
-    // fluorescent coating behaviour expected from lilToon materials.
-    float hi = max(albedo.r, max(albedo.g, albedo.b));
-    float lo = min(albedo.r, min(albedo.g, albedo.b));
-    float chroma = hi - lo;
-    float cyanMask = smoothstep(0.10, 0.34, chroma)
-            * smoothstep(albedo.r * 1.03, albedo.r * 1.28 + 0.02, max(albedo.g, albedo.b))
-            * smoothstep(0.38, 0.72, hi);
-    color += albedo * cyanMask * EmissionStrength * 1.15;
 
     color = mix(color, vec3(max(color.r, 0.72), color.g * 0.32, color.b * 0.32),
                 saturate(HurtFactor));
