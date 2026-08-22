@@ -141,9 +141,11 @@ python tools/import_unity_liltoon.py `
 }
 ```
 
-青色荧光使用独立 fullbright 附加层实现，因此开启 Iris/OptiFine 风格光影包时
-仍然生效。光影包启用期间，基础模型交由其实体管线绘制以接收和投射阴影；发光
-附加层只在正常画面 pass 绘制，在 shadow pass 中自动跳过，不会污染阴影贴图。
+青色荧光使用独立 fullbright 附加层实现，因此开启 Iris/Oculus 光影包时仍然
+生效。光影包启用期间，基础模型在正常画面交由其实体管线绘制，可以接收环境和
+其他物体投射的阴影。PMX 直接 OpenGL 绘制无法使用 Iris 包装后的 shadow vertex
+管线，因此 MMD 网格会跳过 shadow pass，避免 Complementary 等光影出现远离实体
+的长条阴影。发光附加层同样只在正常画面 pass 绘制，不会污染阴影贴图。
 
 ### 发光层处理规则
 

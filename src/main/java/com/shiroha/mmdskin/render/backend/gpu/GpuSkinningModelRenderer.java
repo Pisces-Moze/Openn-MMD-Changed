@@ -40,6 +40,11 @@ final class GpuSkinningModelRenderer {
                        float entityPitch,
                        Vector3f entityTrans,
                        PoseStack deliverStack) {
+        // Direct GPU-skinned draws cannot safely target Oculus/Iris shadow
+        // programs; doing so corrupts shadow-space positions for the scene.
+        if (IrisCompat.isRenderingShadows()) {
+            return;
+        }
         Minecraft minecraft = Minecraft.getInstance();
         LightingHelper.LightData light = LightingHelper.sampleLight(entityIn, minecraft);
         var workingQuat = target.workingQuaternion();

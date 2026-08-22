@@ -34,6 +34,12 @@ final class OpenGlModelRenderer {
 
     static void render(OpenGlModelInstance target, Entity entityIn, float entityYaw, float entityPitch,
                        Vector3f entityTrans, PoseStack deliverStack, int packedLight) {
+        // Oculus/Iris shadow programs require geometry to pass through their
+        // wrapped vertex pipeline. Direct PMX OpenGL draws use incompatible
+        // shadow-space matrices and otherwise create displaced streaks.
+        if (IrisCompat.isRenderingShadows()) {
+            return;
+        }
         Minecraft minecraft = Minecraft.getInstance();
         LightingHelper.LightData light = LightingHelper.sampleLight(entityIn, minecraft);
         var workingQuat = target.workingQuaternion();
