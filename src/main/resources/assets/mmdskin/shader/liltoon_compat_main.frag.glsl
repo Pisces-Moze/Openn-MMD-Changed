@@ -60,17 +60,14 @@ void main() {
     float shadowStep = UseShadow != 0
             ? smoothstep(border - blur, border + blur, ndl)
             : 1.0;
-    vec3 shadowed = albedo * clamp(ShadowColor, vec3(0.0), vec3(1.0));
-    vec3 toonColor = mix(shadowed, albedo, shadowStep);
-
     float environmentLight = clamp(LightIntensity, 0.0, 1.0);
-    // lilToon preserves authored avatar colours with indirect/environment light.
-    // Minecraft does not expose Unity's SH probes here, so use a conservative
-    // indirect-light floor instead of multiplying the texture down toward black.
-    float indirectLight = mix(0.82, 1.0, environmentLight);
-    vec3 color = toonColor * indirectLight;
-    color = max(color, albedo * mix(0.72, 0.86, environmentLight));
-    color = mix(color, albedo, saturate(MaterialUnlit));
+    // Avatar textures already contain their authored colour and painted shading.
+    // Never multiply that base below 1.0: dark blue/cyan fur otherwise collapses
+    // to visually black in Minecraft's already-dark framebuffer.  World light
+    // only adds a restrained toon highlight; rim and emission remain additive.
+    float litBand = shadowStep * mix(0.035, 0.11, environmentLight);
+    vec3 lightTint = mix(clamp(ShadowColor, vec3(0.0), vec3(1.0)), vec3(1.0), 0.88);
+    vec3 color = albedo + albedo * lightTint * litBand * (1.0 - saturate(MaterialUnlit));
 
     // View-space MatCap approximation. This requires no Unity reflection probe
     // and remains deterministic in inventory and first-person rendering.
