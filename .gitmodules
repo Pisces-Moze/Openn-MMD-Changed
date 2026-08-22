@@ -1,3 +1,6 @@
 [submodule "rust_engine/deps/bullet3"]
 	path = rust_engine/deps/bullet3
 	url = https://github.com/bulletphysics/bullet3.git
+[submodule "third_party/lilToon"]
+	path = third_party/lilToon
+	url = https://github.com/lilxyzw/lilToon.git
