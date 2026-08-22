@@ -64,8 +64,12 @@ void main() {
     vec3 toonColor = mix(shadowed, albedo, shadowStep);
 
     float environmentLight = clamp(LightIntensity, 0.0, 1.0);
-    float stableAmbient = mix(0.34, 0.72, environmentLight);
-    vec3 color = toonColor * stableAmbient;
+    // lilToon preserves authored avatar colours with indirect/environment light.
+    // Minecraft does not expose Unity's SH probes here, so use a conservative
+    // indirect-light floor instead of multiplying the texture down toward black.
+    float indirectLight = mix(0.82, 1.0, environmentLight);
+    vec3 color = toonColor * indirectLight;
+    color = max(color, albedo * mix(0.72, 0.86, environmentLight));
     color = mix(color, albedo, saturate(MaterialUnlit));
 
     // View-space MatCap approximation. This requires no Unity reflection probe
