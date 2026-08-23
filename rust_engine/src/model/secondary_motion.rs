@@ -23,8 +23,10 @@ struct Profile {
 
 impl Profile {
     const HAIR: Self = Self::new(0.80, 0.24, 0.45, 0.025);
-    const TAIL: Self = Self::new(0.68, 0.14, 0.38, 0.035);
-    const EAR: Self = Self::new(1.10, 0.08, 0.54, 0.025);
+    // Tails need enough restoring force to avoid a long, rubber-like follow-through.
+    // Ears are shorter and should settle particularly quickly after head motion.
+    const TAIL: Self = Self::new(1.20, 0.10, 0.60, 0.035);
+    const EAR: Self = Self::new(1.75, 0.05, 0.72, 0.025);
     const CLOTH: Self = Self::new(0.62, 0.34, 0.42, 0.025);
     const SOFT_BODY: Self = Self::new(0.55, 0.12, 0.50, 0.035);
     const ACCESSORY: Self = Self::new(0.82, 0.16, 0.48, 0.02);
