@@ -83,6 +83,14 @@ public class ConfigManager {
         return provider != null ? provider.getToonOutlineWidth() : 0.0022f;
     }
 
+    public static int getMaxOutlinedModelsPerFrame() {
+        return provider != null ? provider.getMaxOutlinedModelsPerFrame() : 2;
+    }
+
+    public static float getToonOutlineMaxDistance() {
+        return provider != null ? provider.getToonOutlineMaxDistance() : 12.0f;
+    }
+
     public static float getToonRimPower() {
         return provider != null ? provider.getToonRimPower() : 5.6f;
     }

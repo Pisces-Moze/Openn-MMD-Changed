@@ -135,7 +135,8 @@ python tools/import_unity_liltoon.py `
 | `cyanEmissionStrength` | 旧实验程序的按颜色提取 | 仅兼容旧模型；新模型应制作明确的 Emission PNG |
 | `normalTexture` / `normalScale` | 法线贴图记录 | 已导入，尚未渲染 |
 | `cull` / `renderMode` / `alphaCutoff` | 剔除、透明模式、裁剪 | 部分兼容，复杂透明排序仍有限制 |
-| `useOutline` / `outlineWidth` / `outlineColor` | 逐材质反向扩壳描边 | 支持；三套渲染路径一致，面部材质自动排除 |
+| `useOutline` / `outlineWidth` / `outlineColor` | 逐材质 GPU 索引扩壳描边 | 支持；不重复 CPU 顶点提交，面部材质自动排除 |
+| `maxOutlinedModelsPerFrame` / `toonOutlineMaxDistance` | 高面数描边数量与距离 LOD | 支持；默认本地玩家加最近 1 个、12 格 |
 
 通用模型不要依赖“青色等于发光”的颜色猜测。不同角色的基础色、色彩空间和压缩
 方式不同，容易把皮肤或衣服全部判成发光。每个需要发光的材质必须提供同 UV、同

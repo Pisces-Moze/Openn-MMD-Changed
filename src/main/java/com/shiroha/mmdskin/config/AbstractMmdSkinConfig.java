@@ -29,6 +29,8 @@ public abstract class AbstractMmdSkinConfig implements ConfigManager.IConfigProv
     @Override public int getToonLevels() { return data.toonLevels; }
     @Override public boolean isToonOutlineEnabled() { return data.toonOutlineEnabled; }
     @Override public float getToonOutlineWidth() { return data.toonOutlineWidth; }
+    @Override public int getMaxOutlinedModelsPerFrame() { return data.maxOutlinedModelsPerFrame; }
+    @Override public float getToonOutlineMaxDistance() { return data.toonOutlineMaxDistance; }
     @Override public float getToonRimPower() { return data.toonRimPower; }
     @Override public float getToonRimIntensity() { return data.toonRimIntensity; }
     @Override public float getToonShadowR() { return data.toonShadowR; }

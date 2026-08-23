@@ -13,6 +13,8 @@ public interface IToonConfig {
     default boolean isToonOutlineEnabled() { return true; }
 
     default float getToonOutlineWidth() { return 0.0022f; }
+    default int getMaxOutlinedModelsPerFrame() { return 2; }
+    default float getToonOutlineMaxDistance() { return 12.0f; }
 
     default float getToonRimPower() { return 5.6f; }
     default float getToonRimIntensity() { return 0.02f; }

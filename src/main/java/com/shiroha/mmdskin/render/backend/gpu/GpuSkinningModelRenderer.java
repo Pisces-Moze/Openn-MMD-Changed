@@ -11,6 +11,7 @@ import com.shiroha.mmdskin.render.material.ModelMaterial;
 import com.shiroha.mmdskin.render.material.SubMeshDrawHelper;
 import com.shiroha.mmdskin.render.pipeline.LightingHelper;
 import com.shiroha.mmdskin.render.pipeline.RenderPerformanceProfiler;
+import com.shiroha.mmdskin.render.policy.OutlineRenderBudget;
 import com.shiroha.mmdskin.render.shader.SkinningComputeShader;
 import com.shiroha.mmdskin.render.shader.FullbrightLayerShader;
 import com.shiroha.mmdskin.render.shader.ToonRenderHelper;
@@ -89,7 +90,8 @@ final class GpuSkinningModelRenderer {
         long drawTimer = RenderPerformanceProfiler.get().startTimer();
         try {
             if (useToon && GpuSkinningModelInstance.toonShaderCpu != null && GpuSkinningModelInstance.toonShaderCpu.isInitialized()) {
-                renderToon(target, minecraft, light.intensity(), hurt);
+                renderToon(target, minecraft, light.intensity(), hurt,
+                        OutlineRenderBudget.get().shouldRender(entityIn));
             } else {
                 renderNormal(target, minecraft, light.intensity(), light.blockLight(), light.skyLight(),
                         light.skyDarken(), hurt);
@@ -297,7 +299,7 @@ final class GpuSkinningModelRenderer {
     }
 
     private static void renderToon(GpuSkinningModelInstance target, Minecraft minecraft,
-                                   float lightIntensity, boolean hurt) {
+                                   float lightIntensity, boolean hurt, boolean renderOutline) {
         if (IrisCompat.isIrisShaderActive()) {
             ShaderInstance irisShader = RenderSystem.getShader();
             if (irisShader != null) {
@@ -341,7 +343,7 @@ final class GpuSkinningModelRenderer {
 
         renderFullbrightLayers(target);
 
-        if (GpuSkinningModelInstance.toonConfig.isOutlineEnabled()) {
+        if (renderOutline && GpuSkinningModelInstance.toonConfig.isOutlineEnabled()) {
             renderOutlinePass(target, minecraft);
         }
 

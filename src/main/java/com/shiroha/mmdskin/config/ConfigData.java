@@ -47,6 +47,8 @@ public class ConfigData {
     public float toonSpecularIntensity = 0.015f;
     public boolean toonOutlineEnabled = true;
     public float toonOutlineWidth = 0.0022f;
+    public int maxOutlinedModelsPerFrame = 2;
+    public float toonOutlineMaxDistance = 12.0f;
     public float toonOutlineR = 0.06f;
     public float toonOutlineG = 0.08f;
     public float toonOutlineB = 0.12f;
@@ -136,6 +138,8 @@ public class ConfigData {
         toonSpecularPower = clamp(toonSpecularPower, 1.0f, 128.0f);
         toonSpecularIntensity = clamp(toonSpecularIntensity, 0.0f, 1.0f);
         toonOutlineWidth = clamp(toonOutlineWidth, 0.001f, 0.02f);
+        maxOutlinedModelsPerFrame = Math.max(1, maxOutlinedModelsPerFrame);
+        toonOutlineMaxDistance = Math.max(0.0f, toonOutlineMaxDistance);
         toonOutlineR = clamp(toonOutlineR, 0.0f, 1.0f);
         toonOutlineG = clamp(toonOutlineG, 0.0f, 1.0f);
         toonOutlineB = clamp(toonOutlineB, 0.0f, 1.0f);

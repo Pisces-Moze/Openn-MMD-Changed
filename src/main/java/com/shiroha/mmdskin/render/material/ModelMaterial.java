@@ -20,7 +20,6 @@ public class ModelMaterial {
     public String name = "";
     public String texturePath = "";
     public ResourceLocation minecraftTexture;
-    public ResourceLocation minecraftOutlineTexture;
     public ResourceLocation minecraftEmissionTexture;
     public boolean ownsTexture = false;
     public boolean lilUseShadow = true;

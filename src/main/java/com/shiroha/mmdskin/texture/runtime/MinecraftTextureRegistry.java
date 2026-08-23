@@ -26,12 +26,6 @@ public final class MinecraftTextureRegistry {
                 0.0f, 0.0f, 1.0f, 0.0f, List.of(), true);
     }
 
-    /** White RGB with the authored alpha, matching lilToon's default white OutlineTex. */
-    public static ResourceLocation getOutlineMask(String filename, String modelDirectory) {
-        return getFiltered(filename, modelDirectory, "outline_alpha", null,
-                0.0f, 0.0f, 1.0f, 0.0f, List.of(), false);
-    }
-
     public static ResourceLocation getFiltered(String filename, String modelDirectory,
                                                String maskMode, float[] maskColor,
                                                float tolerance, float minBrightness,
@@ -66,9 +60,7 @@ public final class MinecraftTextureRegistry {
                                          boolean preserveSourceColor) {
         try (InputStream stream = Files.newInputStream(Path.of(filename))) {
             NativeImage image = NativeImage.read(stream);
-            if ("outline_alpha".equals(maskMode)) {
-                whitenRgbPreserveAlpha(image);
-            } else if (!"texture".equals(maskMode) && !"none".equals(maskMode)) {
+            if (!"texture".equals(maskMode) && !"none".equals(maskMode)) {
                 filterEmission(image, maskMode, maskColor, tolerance,
                         minBrightness, maxBrightness, minSaturation,
                         uvRects, preserveSourceColor);
@@ -83,15 +75,6 @@ public final class MinecraftTextureRegistry {
         } catch (Exception exception) {
             LOGGER.warn("Cannot register PMX texture with Minecraft: {}", filename);
             return null;
-        }
-    }
-
-    private static void whitenRgbPreserveAlpha(NativeImage image) {
-        for (int y = 0; y < image.getHeight(); y++) {
-            for (int x = 0; x < image.getWidth(); x++) {
-                int alpha = (image.getPixelRGBA(x, y) >>> 24) & 0xff;
-                image.setPixelRGBA(x, y, (alpha << 24) | 0x00ffffff);
-            }
         }
     }
 

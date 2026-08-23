@@ -13,6 +13,7 @@ import com.shiroha.mmdskin.render.shader.ToonRenderHelper;
 import com.shiroha.mmdskin.render.shader.FullbrightLayerShader;
 import com.shiroha.mmdskin.render.pipeline.LightingHelper;
 import com.shiroha.mmdskin.render.pipeline.RenderPerformanceProfiler;
+import com.shiroha.mmdskin.render.policy.OutlineRenderBudget;
 import com.shiroha.mmdskin.render.material.ModelMaterial;
 import com.shiroha.mmdskin.render.material.SubMeshDrawHelper;
 import net.minecraft.client.Minecraft;
@@ -42,6 +43,12 @@ final class OpenGlModelRenderer {
         if (buffers != null) {
             MinecraftBufferedModelRenderer.render(target, entityIn, entityYaw, entityPitch,
                     entityTrans, deliverStack, packedLight, buffers);
+            if (!IrisCompat.isRenderingShadows()
+                    && OutlineRenderBudget.get().shouldRender(entityIn)
+                    && OpenGlModelInstance.toonConfig.isOutlineEnabled()
+                    && initializeToonShaderIfNeeded()) {
+                renderBufferedOutline(target, entityYaw, entityPitch, entityTrans, deliverStack);
+            }
             return;
         }
 
@@ -86,7 +93,8 @@ final class OpenGlModelRenderer {
         if (useToon) {
             long drawTimer = RenderPerformanceProfiler.get().startTimer();
             try {
-                renderToon(target, minecraft, light.intensity(), deliverStack, hurt);
+                renderToon(target, minecraft, light.intensity(), deliverStack, hurt,
+                        OutlineRenderBudget.get().shouldRender(entityIn));
             } finally {
                 RenderPerformanceProfiler.get().endTimer(RenderPerformanceProfiler.SECTION_DRAW, drawTimer);
             }
@@ -117,6 +125,58 @@ final class OpenGlModelRenderer {
         }
 
         return OpenGlModelInstance.toonShaderCpu.isInitialized();
+    }
+
+    /**
+     * Draws only the inverted hull from the indexed PMX VBO. Unlike the Minecraft
+     * base/emission path this does not re-submit hundreds of thousands of vertices
+     * through VertexConsumer every frame.
+     */
+    private static void renderBufferedOutline(OpenGlModelInstance target, float yaw, float pitch,
+                                              Vector3f translation, PoseStack stack) {
+        ShaderInstance previousShader = RenderSystem.getShader();
+        stack.pushPose();
+        try {
+            var rotation = target.workingQuaternion();
+            stack.mulPose(rotation.identity().rotateY(-yaw * ((float) Math.PI / 180.0f)));
+            stack.mulPose(rotation.identity().rotateX(pitch * ((float) Math.PI / 180.0f)));
+            stack.translate(translation.x, translation.y, translation.z);
+            float scale = target.modelScaleValue();
+            stack.scale(scale, scale, scale);
+
+            target.modelViewMatBuff.clear();
+            target.projMatBuff.clear();
+            stack.last().pose().get(target.modelViewMatBuff);
+            RenderSystem.getProjectionMatrix().get(target.projMatBuff);
+
+            BufferUploader.reset();
+            GL46C.glBindVertexArray(target.vertexArrayObject);
+            GL46C.glBindBuffer(GL46C.GL_ARRAY_BUFFER, target.vertexBufferObject);
+            GL46C.glBufferSubData(GL46C.GL_ARRAY_BUFFER, 0, target.posBuffer);
+            GL46C.glBindBuffer(GL46C.GL_ARRAY_BUFFER, target.normalBufferObject);
+            GL46C.glBufferSubData(GL46C.GL_ARRAY_BUFFER, 0, target.norBuffer);
+            if (target.hasUvMorph) {
+                GL46C.glBindBuffer(GL46C.GL_ARRAY_BUFFER, target.texcoordBufferObject);
+                GL46C.glBufferSubData(GL46C.GL_ARRAY_BUFFER, 0, target.uv0Buffer);
+            }
+            GL46C.glBindBuffer(GL46C.GL_ELEMENT_ARRAY_BUFFER, target.indexBufferObject);
+
+            RenderSystem.enableBlend();
+            RenderSystem.enableDepthTest();
+            RenderSystem.blendEquation(GL46C.GL_FUNC_ADD);
+            RenderSystem.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA,
+                    GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA);
+            renderOutlinePass(target, Minecraft.getInstance());
+        } finally {
+            GL46C.glBindBuffer(GL46C.GL_ARRAY_BUFFER, 0);
+            GL46C.glBindBuffer(GL46C.GL_ELEMENT_ARRAY_BUFFER, 0);
+            GL46C.glBindVertexArray(0);
+            GL46C.glUseProgram(0);
+            RenderSystem.activeTexture(GL46C.GL_TEXTURE0);
+            BufferUploader.reset();
+            if (previousShader != null) previousShader.apply();
+            stack.popPose();
+        }
     }
 
     private static void renderStandard(OpenGlModelInstance target, Minecraft minecraft,
@@ -528,7 +588,7 @@ final class OpenGlModelRenderer {
     }
 
     private static void renderToon(OpenGlModelInstance target, Minecraft minecraft, float lightIntensity,
-                                   PoseStack deliverStack, boolean hurt) {
+                                   PoseStack deliverStack, boolean hurt, boolean renderOutline) {
         BufferUploader.reset();
         GL46C.glBindVertexArray(target.vertexArrayObject);
         RenderSystem.enableBlend();
@@ -578,7 +638,7 @@ final class OpenGlModelRenderer {
         renderToonMainPass(target, minecraft, lightIntensity, hurt);
         renderFullbrightLayers(target);
 
-        if (OpenGlModelInstance.toonConfig.isOutlineEnabled()) {
+        if (renderOutline && OpenGlModelInstance.toonConfig.isOutlineEnabled()) {
             renderOutlinePass(target, minecraft);
         }
 
