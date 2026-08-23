@@ -17,12 +17,14 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.player.Player;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /** 文件职责：加载 Morph 轮盘配置并把选择应用到当前玩家模型。 */
 public class DefaultMorphWheelService implements MorphWheelService {
     private static final Logger logger = LogManager.getLogger();
+    private static volatile Function<Player, ManagedModel> currentModelResolver;
 
     private final Supplier<List<MorphWheelConfig.MorphEntry>> morphEntriesSupplier;
     private final Function<MorphWheelConfig.MorphEntry, String> fileResolver;
@@ -34,6 +36,11 @@ public class DefaultMorphWheelService implements MorphWheelService {
                 DefaultMorphWheelService::resolveMorphFilePath,
                 new MinecraftMorphRuntimePort(),
                 PlayerMorphSyncService.getInstance());
+    }
+
+    /** Allows fixed-form addons to expose their model without enabling model selection. */
+    public static void setCurrentModelResolver(Function<Player, ManagedModel> resolver) {
+        currentModelResolver = resolver;
     }
 
     DefaultMorphWheelService(
@@ -119,6 +126,18 @@ public class DefaultMorphWheelService implements MorphWheelService {
             Minecraft minecraft = Minecraft.getInstance();
             if (minecraft.player == null) {
                 return null;
+            }
+
+            Function<Player, ManagedModel> resolver = currentModelResolver;
+            if (resolver != null) {
+                try {
+                    ManagedModel fixedModel = resolver.apply(minecraft.player);
+                    if (fixedModel != null && fixedModel.modelInstance() != null) {
+                        return fixedModel.modelInstance().getModelHandle();
+                    }
+                } catch (Exception e) {
+                    logger.warn("Cannot resolve fixed-form expression model", e);
+                }
             }
 
             String playerName = minecraft.player.getName().getString();

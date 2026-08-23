@@ -172,9 +172,37 @@ impl SpringBoneRuntime {
         }
     }
 
-    #[cfg(test)]
     pub fn len(&self) -> usize {
         self.chains.len()
+    }
+
+    pub fn joint_count(&self) -> usize {
+        self.chains.iter().map(|chain| chain.joints.len()).sum()
+    }
+
+    pub fn reset(&mut self, bones: &BoneManager) {
+        for chain in &mut self.chains {
+            for joint in &mut chain.joints {
+                let Some(bone) = bones.get_bone(joint.bone_index) else { continue; };
+                let tail = bone.position() + bone.rotation() * joint.bone_axis * joint.rest_length;
+                joint.state = TailState::new(joint.state.space, tail, tail, bones);
+            }
+        }
+    }
+
+    /// Preserve world-space inertia when the owning entity translates or turns.
+    /// Center-relative VRM chains are intentionally left untouched.
+    pub fn rebase_world_space(&mut self, old_model_to_new_model: Mat4) {
+        for chain in &mut self.chains {
+            for joint in &mut chain.joints {
+                if matches!(joint.state.space, TailSpace::World) {
+                    joint.state.current_tail = old_model_to_new_model
+                        .transform_point3(joint.state.current_tail);
+                    joint.state.prev_tail = old_model_to_new_model
+                        .transform_point3(joint.state.prev_tail);
+                }
+            }
+        }
     }
 }
 

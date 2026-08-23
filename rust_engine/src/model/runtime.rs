@@ -9,16 +9,18 @@ use crate::vrm_runtime::{
     pmx_controller_hand_tracking_calibration, resolve_java_tracking_frame_for_model,
     resolve_tracking_frame_for_model, vivecraft_body_tracking_calibration,
     vrm_controller_hand_tracking_calibration, ArmIkCalibration, BodyTrackingCalibration,
-    HandTrackingCalibration, TrackedPose, VrmModelRuntimeState, VrmRuntimeInput, VrmRuntimeOutput,
-    VrmTrackingInput,
+    HandTrackingCalibration, SpringBoneRuntime, TrackedPose, VrmModelRuntimeState,
+    VrmRuntimeInput, VrmRuntimeOutput, VrmTrackingInput,
 };
 use glam::{Mat4, Quat, Vec2, Vec3, Vec4};
 use rayon::prelude::*;
 use std::collections::{HashMap, HashSet};
+use std::path::Path;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use super::VrmExtensions;
+use super::secondary_motion::build_secondary_motion;
 use super::{MmdMaterial, RuntimeVertex, SubMesh, VertexWeight};
 
 thread_local! {
@@ -123,6 +125,10 @@ pub struct MmdModel {
 
     // 物理系统
     physics: Option<MMDPhysics>,
+    /// Conservative spring-chain fallback for PMX files without rigid bodies.
+    secondary_motion: Option<SpringBoneRuntime>,
+    secondary_motion_last_transform: Mat4,
+    secondary_motion_transform_initialized: bool,
     physics_enabled: bool,
     /// 骨骼变换缓冲区（避免每帧堆分配）
     physics_bone_transforms_buf: Vec<Mat4>,
@@ -269,6 +275,9 @@ impl MmdModel {
             vrm_runtime_state: None,
             model_transform: Mat4::IDENTITY,
             physics: None,
+            secondary_motion: None,
+            secondary_motion_last_transform: Mat4::IDENTITY,
+            secondary_motion_transform_initialized: false,
             physics_enabled: false,
             physics_bone_transforms_buf: Vec::new(),
             material_visible: Vec::new(),
@@ -1786,6 +1795,8 @@ impl MmdModel {
     pub fn get_dynamic_bone_count(&self) -> usize {
         if let Some(ref physics) = self.physics {
             physics.get_dynamic_bone_indices().len()
+        } else if let Some(ref spring) = self.secondary_motion {
+            spring.joint_count()
         } else {
             0
         }
@@ -2299,11 +2310,17 @@ impl MmdModel {
             runtime_state.process_post_ik(model, elapsed);
         });
 
-        let physics_enabled = !self.is_vrm && self.physics_enabled && self.physics.is_some();
+        let physics_enabled = !self.is_vrm
+            && self.physics_enabled
+            && (self.physics.is_some() || self.secondary_motion.is_some());
         if physics_enabled {
-            self.update_physics(elapsed);
-            self.update_node_animation(true);
-            self.end_physics_update();
+            if self.physics.is_some() {
+                self.update_physics(elapsed);
+                self.update_node_animation(true);
+                self.end_physics_update();
+            } else {
+                self.update_secondary_motion(elapsed);
+            }
         }
 
         self.end_animation();
@@ -2323,6 +2340,11 @@ impl MmdModel {
                 log::info!(
                     "GPU skinning physics debug: {} dynamic bones",
                     dynamic_count
+                );
+            } else if let Some(ref spring) = self.secondary_motion {
+                log::info!(
+                    "GPU skinning secondary motion: {} chains / {} joints",
+                    spring.len(), spring.joint_count()
                 );
             }
             /*
@@ -2368,26 +2390,81 @@ impl MmdModel {
         true
     }
 
+    /// Initialize generic spring-chain motion only when standard PMX physics is absent.
+    pub fn init_secondary_motion<P: AsRef<Path>>(&mut self, model_path: P) -> bool {
+        if self.is_vrm || !self.rigid_bodies.is_empty() {
+            return false;
+        }
+        let Some(build) = build_secondary_motion(&self.bone_manager, model_path.as_ref()) else {
+            log::debug!("PMX 无刚体且没有可识别的次级运动骨链");
+            return false;
+        };
+        log::info!(
+            "PMX 无刚体：启用通用次级运动回退（{} 条骨链，{} 个关节）",
+            build.chain_count,
+            build.joint_count
+        );
+        self.secondary_motion = Some(SpringBoneRuntime::new(build.data, &self.bone_manager));
+        self.secondary_motion_transform_initialized = false;
+        self.physics_enabled = true;
+        true
+    }
+
     /// 重置物理系统
     pub fn reset_physics(&mut self) {
         if let Some(ref mut physics) = self.physics {
             physics.reset();
         }
+        if let Some(ref mut spring) = self.secondary_motion {
+            spring.reset(&self.bone_manager);
+        }
+        self.secondary_motion_transform_initialized = false;
     }
 
     /// 启用/禁用物理
     pub fn set_physics_enabled(&mut self, enabled: bool) {
+        if enabled && !self.physics_enabled {
+            self.secondary_motion_transform_initialized = false;
+        }
         self.physics_enabled = enabled;
     }
 
     /// 获取物理是否启用
     pub fn is_physics_enabled(&self) -> bool {
-        self.physics_enabled && self.physics.is_some()
+        self.physics_enabled && (self.physics.is_some() || self.secondary_motion.is_some())
     }
 
     /// 获取物理系统是否已初始化
     pub fn has_physics(&self) -> bool {
-        self.physics.is_some()
+        self.physics.is_some() || self.secondary_motion.is_some()
+    }
+
+    fn update_secondary_motion(&mut self, delta_time: f32) {
+        if !crate::physics::config::get_config().enabled || !self.physics_enabled {
+            return;
+        }
+        let delta_time = delta_time.clamp(0.0, 1.0 / 15.0);
+        if let Some(ref mut spring) = self.secondary_motion {
+            if self.secondary_motion_transform_initialized {
+                let determinant = self.model_transform.determinant();
+                if determinant.is_finite() && determinant.abs() > 1e-6 {
+                    let delta = self.model_transform.inverse() * self.secondary_motion_last_transform;
+                    let translation = delta.w_axis.truncate();
+                    if translation.is_finite() && translation.length() <= 8.0 {
+                        spring.rebase_world_space(delta);
+                    } else {
+                        spring.reset(&self.bone_manager);
+                    }
+                } else {
+                    spring.reset(&self.bone_manager);
+                }
+            } else {
+                spring.reset(&self.bone_manager);
+                self.secondary_motion_transform_initialized = true;
+            }
+            spring.process(&mut self.bone_manager, delta_time);
+            self.secondary_motion_last_transform = self.model_transform;
+        }
     }
 
     /// 更新物理模拟（Bullet3）

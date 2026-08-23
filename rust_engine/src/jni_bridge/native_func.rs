@@ -128,6 +128,8 @@ pub extern "system" fn Java_com_shiroha_mmdskin_NativeFunc_LoadModelPMX(
                     model.joints.len()
                 );
                 model.init_physics();
+            } else {
+                model.init_secondary_motion(&filename_str);
             }
             register_model(model)
         }

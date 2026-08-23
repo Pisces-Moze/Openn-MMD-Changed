@@ -3,6 +3,7 @@
 mod loader;
 mod material;
 mod runtime;
+mod secondary_motion;
 mod submesh;
 
 mod bone_mapping;
