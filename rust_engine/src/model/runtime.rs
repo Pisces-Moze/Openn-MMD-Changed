@@ -2320,6 +2320,10 @@ impl MmdModel {
                 self.end_physics_update();
             } else {
                 self.update_secondary_motion(elapsed);
+                // SpringBone writes global transforms directly. Refresh the cached
+                // skinning matrices explicitly so GPU skinning observes the result
+                // in the same frame even when no deform-after-physics PMX bones exist.
+                self.bone_manager.update_skinning_matrices();
             }
         }
 

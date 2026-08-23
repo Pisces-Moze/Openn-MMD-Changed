@@ -94,13 +94,33 @@ public final class RenderPriorityService {
 
     public synchronized boolean shouldEnablePhysics(Entity entity, boolean localPlayer) {
         beginWorldFrame();
-        if (!config.isPhysicsEnabled()) {
+        if (!config.isPhysicsEnabled() || entity == null) {
             return false;
         }
         if (localPlayer) {
             return true;
         }
-        return entity != null && prioritizedPhysicsEntities.contains(entity.getUUID());
+        UUID entityId = entity.getUUID();
+        if (prioritizedPhysicsEntities.contains(entityId)) {
+            return true;
+        }
+
+        // Custom renderers can feed arbitrary LivingEntity implementations into the
+        // MMD pipeline (for example Changed transformation entities). They are not
+        // discoverable through the player/model-replacement pre-scan above, so admit
+        // them lazily while preserving the same distance and per-frame budgets.
+        double distanceSq = distanceSqToCamera(entity, false);
+        double maxDistance = config.getPhysicsLodMaxDistance();
+        if (maxDistance > 0.0d && distanceSq > maxDistance * maxDistance) {
+            return false;
+        }
+        int maxModels = config.getMaxPhysicsModelsPerFrame();
+        if (maxModels > 0 && prioritizedPhysicsEntities.size() >= maxModels) {
+            return false;
+        }
+        prioritizedPhysicsEntities.add(entityId);
+        physicsModelsThisFrame = prioritizedPhysicsEntities.size();
+        return true;
     }
 
     public double distanceSqToCamera(Entity entity, boolean localPlayer) {

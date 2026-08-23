@@ -66,10 +66,13 @@ final class GpuSkinningModelRenderer {
 
         updateGpuStateIfDirty(target, nativeBackend, modelHandle);
 
-        // Preserve Iris' entity/shadow program while a shader pack is active.
-        // The standalone lilToon program has no access to pack-specific shadow
-        // samplers and would otherwise bypass both casting and receiving shadows.
-        boolean useToon = !IrisCompat.isIrisShaderActive() && initializeToonShaderIfNeeded();
+        // Keep GPU compute skinning, but never bind its custom vertex buffers to an
+        // arbitrary Iris/Oculus entity program. Shader packs are free to change
+        // attribute types and uniform layouts between passes; treating them like a
+        // vanilla ShaderInstance causes GL_INVALID_OPERATION storms and lets one
+        // model corrupt the following model's draw state. Shadow passes are already
+        // skipped above, while the stable lilToon program handles the main pass.
+        boolean useToon = initializeToonShaderIfNeeded();
         boolean hurt = entityIn instanceof LivingEntity living && living.hurtTime > 0;
 
         BufferUploader.reset();

@@ -299,4 +299,39 @@ mod tests {
         bones.build_hierarchy();
         assert!(build_secondary_motion(&bones, Path::new("missing/model.pmx")).is_none());
     }
+
+    #[test]
+    fn bundled_model_has_secondary_motion_chains() {
+        let model_path = Path::new("../src/main/resources/assets/openmmdchanged/mmd/mmd_latex/model.pmx");
+        if !model_path.is_file() {
+            return;
+        }
+        let model = crate::model::load_pmx(model_path).expect("bundled PMX should load");
+        let build = build_secondary_motion(&model.bone_manager, model_path)
+            .expect("bundled PMX should expose secondary-motion chains");
+        println!("bundled secondary motion: {} chains / {} joints", build.chain_count, build.joint_count);
+        assert!(build.chain_count >= 1);
+        assert!(build.joint_count >= 2);
+    }
+
+    #[test]
+    fn bundled_model_secondary_motion_changes_gpu_matrices() {
+        let model_path = Path::new("../src/main/resources/assets/openmmdchanged/mmd/mmd_latex/model.pmx");
+        if !model_path.is_file() {
+            return;
+        }
+        let mut model = crate::model::load_pmx(model_path).expect("bundled PMX should load");
+        assert!(model.init_secondary_motion(model_path));
+        model.tick_animation_no_skinning(1.0 / 60.0);
+        let before = model.bone_manager.get_skinning_matrices().to_vec();
+        for _ in 0..30 {
+            model.tick_animation_no_skinning(1.0 / 60.0);
+        }
+        let changed = before.iter().zip(model.bone_manager.get_skinning_matrices())
+            .filter(|(a, b)| a.to_cols_array().iter().zip(b.to_cols_array())
+                .any(|(x, y)| (x - y).abs() > 1.0e-5))
+            .count();
+        println!("bundled secondary motion changed {} bone matrices", changed);
+        assert!(changed >= 2, "secondary motion must reach GPU skinning matrices");
+    }
 }
