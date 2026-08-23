@@ -10,7 +10,7 @@ public interface RuntimeConfigPort {
 
         @Override
         public boolean isGpuSkinningEnabled() {
-            return false;
+            return true;
         }
 
         @Override

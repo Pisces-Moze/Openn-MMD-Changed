@@ -25,7 +25,7 @@ public class ConfigData {
     public int modelPoolMaxCount = 20;
     public boolean mmdShaderEnabled = false;
 
-    public boolean gpuSkinningEnabled = false;
+    public boolean gpuSkinningEnabled = true;
     public boolean gpuMorphEnabled = false;
     public int maxBones = 2048;
     public boolean performanceProfilingEnabled = false;

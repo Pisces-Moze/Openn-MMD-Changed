@@ -28,7 +28,10 @@ public class ConfigManager {
     }
 
     public static boolean isGpuSkinningEnabled() {
-        return provider != null ? provider.isGpuSkinningEnabled() : false;
+        // This embedded Changed addon has no platform config provider during early
+        // client bootstrap. Prefer the GPU backend in that case; unsupported desktop
+        // drivers still fall back safely when compute-shader initialization fails.
+        return provider != null ? provider.isGpuSkinningEnabled() : true;
     }
 
     public static boolean isGpuMorphEnabled() {
