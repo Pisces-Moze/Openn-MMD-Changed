@@ -1,6 +1,7 @@
 package com.shiroha.mmdskin.model.runtime;
 
 import com.shiroha.mmdskin.util.VectorParseUtil;
+import com.shiroha.mmdskin.util.WaterSurfaceUtil;
 import java.util.Properties;
 import org.joml.Vector3f;
 import org.joml.Vector3fc;
@@ -16,13 +17,17 @@ public record ModelRenderProperties(
         float swimmingPitch,
         Vector3fc swimmingTranslation,
         float crawlingPitch,
-        Vector3fc crawlingTranslation) {
+        Vector3fc crawlingTranslation,
+        float floatingPitch,
+        Vector3fc floatingTranslation,
+        float floatingDepth) {
 
     public ModelRenderProperties {
         sleepingTranslation = copyVector(sleepingTranslation);
         flyingTranslation = copyVector(flyingTranslation);
         swimmingTranslation = copyVector(swimmingTranslation);
         crawlingTranslation = copyVector(crawlingTranslation);
+        floatingTranslation = copyVector(floatingTranslation);
     }
 
     public static final ModelRenderProperties DEFAULT =
@@ -36,7 +41,10 @@ public record ModelRenderProperties(
                     0.0f,
                     new Vector3f(),
                     0.0f,
-                    new Vector3f());
+                    new Vector3f(),
+                    0.0f,
+                    new Vector3f(),
+                    WaterSurfaceUtil.DEFAULT_IMMERSION_DEPTH);
 
     public static ModelRenderProperties from(Properties properties) {
         if (properties == null || properties.isEmpty()) {
@@ -52,7 +60,10 @@ public record ModelRenderProperties(
                 getFloat(properties, "swimmingPitch", 0.0f),
                 getVector(properties, "swimmingTrans"),
                 getFloat(properties, "crawlingPitch", 0.0f),
-                getVector(properties, "crawlingTrans"));
+                getVector(properties, "crawlingTrans"),
+                getFloat(properties, "floatingPitch", 0.0f),
+                getVector(properties, "floatingTrans"),
+                getFloat(properties, "floatingDepth", WaterSurfaceUtil.DEFAULT_IMMERSION_DEPTH));
     }
 
     private static float getFloat(Properties properties, String key, float defaultValue) {

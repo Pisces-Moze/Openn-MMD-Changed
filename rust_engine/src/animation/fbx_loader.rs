@@ -232,10 +232,22 @@ fn extract_animation(nodes: &[FbxNode], stack_name: Option<&str>) -> Result<Moti
             ))
         })?
     } else {
-        anim_stacks
-            .first()
+        // 无 stack 指定：优先选择曲线节点最多的 stack。
+        // Mixamo 导出的 FBX 常把动画放在非首个 stack（如 "mixamo.com"），首个可能只是空 take，
+        // 若取首个会导致提取出 0 骨轨道、模型停在绑定姿态。
+        let stack_with_most: Option<(i64, usize)> = anim_stacks
+            .iter()
+            .map(|(sid, _)| {
+                let count = cn_to_layer
+                    .iter()
+                    .filter(|(_, layer)| layer_to_stack.get(layer) == Some(sid))
+                    .count();
+                (*sid, count)
+            })
+            .max_by_key(|(_, count)| *count);
+        stack_with_most
+            .map(|(id, _)| id)
             .ok_or_else(|| MmdError::FbxParse("FBX 文件不包含 AnimationStack".into()))?
-            .0
     };
 
     // 确定有效 CurveNode 集合（属于目标 Stack 的 Layer）
@@ -467,6 +479,8 @@ fn extract_animation(nodes: &[FbxNode], stack_name: Option<&str>) -> Result<Moti
         }
     }
 
+    normalize_fbx_root(&mut motion);
+
     // 禁用 IK（FBX 为纯 FK 数据）
     const MMD_IK_BONES: &[&str] = &["左足ＩＫ", "右足ＩＫ", "左つま先ＩＫ", "右つま先ＩＫ"];
     for &ik_name in MMD_IK_BONES {
@@ -478,6 +492,22 @@ fn extract_animation(nodes: &[FbxNode], stack_name: Option<&str>) -> Result<Moti
     }
 
     Ok(motion)
+}
+
+/// 归一化/钉住 FBX 根骨（センター / 全身根）的位移。
+///
+/// Mixamo 等导出的 FBX，其髋/根骨带相对静止姿态的位移（垂直下沉、或水平移动让整模型往前/侧移）。
+/// 由于 `BoneSet` 的最终位置 = body_shift + animation_translate，而模型的绑定高度（body_shift）已让脚贴地，
+/// 这里把根骨的**三轴位移清零**，让模型固定在原点、脚贴地，只保留骨骼旋转（动作本身）。
+/// 这样"模型会移动"的动画（如游泳前进、潜行位移、水中漂浮漂移）都能"固定住、只要动作"。
+fn normalize_fbx_root(motion: &mut Motion) {
+    for name in ["センター", "全ての親", "root", "全体", "根"] {
+        if let Some(track) = motion.bone_tracks.get_mut(name) {
+            for kf in track.keyframes.values_mut() {
+                kf.translation = Vec3::ZERO;
+            }
+        }
+    }
 }
 
 /// 解析 Model 节点，提取 ID、名称、默认变换

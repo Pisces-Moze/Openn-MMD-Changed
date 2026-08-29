@@ -2,10 +2,12 @@
 
 mod bone_link;
 mod bone_set;
+mod humanoid_role;
 mod ik_solver;
 
 pub use bone_link::{AppendConfig, BoneFlags, BoneLink, IkConfig, IkLink};
 pub use bone_set::BoneSet;
+pub use humanoid_role::{role_of_name, HumanoidRole};
 pub use ik_solver::IkSolver;
 
 use glam::{Mat4, Quat, Vec3};

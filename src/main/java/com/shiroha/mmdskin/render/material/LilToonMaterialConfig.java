@@ -112,7 +112,6 @@ public final class LilToonMaterialConfig {
         public Float matCapStrength;
         public Boolean useEmission;
         public Float emissionStrength;
-        public Float cyanEmissionStrength;
         public String emissionTexture;
         public float[] emissionColor;
         /** Optional ordered emission passes. Allows explicit and color-filtered masks together. */

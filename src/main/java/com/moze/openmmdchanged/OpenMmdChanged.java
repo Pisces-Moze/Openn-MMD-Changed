@@ -6,6 +6,8 @@ import com.moze.openmmdchanged.client.MmdAssetInstaller;
 import com.moze.openmmdchanged.registry.ModEntities;
 import com.moze.openmmdchanged.registry.ModItems;
 import com.moze.openmmdchanged.registry.ModTransfurVariants;
+import com.moze.openmmdchanged.network.ModNetwork;
+import com.moze.openmmdchanged.player.WaterFloatController;
 import com.shiroha.mmdskin.MmdSkinClient;
 import com.shiroha.mmdskin.model.runtime.ModelRequestKey;
 import com.shiroha.mmdskin.render.bootstrap.ClientRenderRuntime;
@@ -41,6 +43,7 @@ public final class OpenMmdChanged {
         ModEntities.REGISTRY.register(modBus);
         ModItems.REGISTRY.register(modBus);
         ModTransfurVariants.REGISTRY.register(modBus);
+        ModNetwork.init();
         modBus.addListener(OpenMmdChanged::registerAttributes);
         modBus.addListener(OpenMmdChanged::addCreativeTabItems);
     }
@@ -104,6 +107,7 @@ public final class OpenMmdChanged {
     @Mod.EventBusSubscriber(modid = MODID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
     public static final class ForgeClientEvents {
         private static boolean expressionWheelKeyWasDown;
+        private static boolean waterFloatKeyWasDown;
 
         private ForgeClientEvents() {
         }
@@ -116,9 +120,16 @@ public final class OpenMmdChanged {
             Minecraft minecraft = Minecraft.getInstance();
             if (minecraft.player == null) {
                 expressionWheelKeyWasDown = false;
+                waterFloatKeyWasDown = false;
                 return;
             }
             ClientRenderRuntime.get().modelRepository().tick();
+            boolean jumpHeld = minecraft.player.input.jumping;
+            WaterFloatController.tick(minecraft.player, jumpHeld);
+            if (jumpHeld != waterFloatKeyWasDown) {
+                ModNetwork.sendWaterFloatInput(jumpHeld);
+                waterFloatKeyWasDown = jumpHeld;
+            }
             if (minecraft.screen == null || minecraft.screen instanceof MorphWheelScreen) {
                 boolean keyDown = ClientEvents.EXPRESSION_WHEEL_KEY.isDown();
                 if (keyDown && !expressionWheelKeyWasDown && minecraft.screen == null) {

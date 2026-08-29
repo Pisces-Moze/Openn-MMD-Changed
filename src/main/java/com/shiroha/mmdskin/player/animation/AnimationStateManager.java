@@ -3,6 +3,7 @@ package com.shiroha.mmdskin.player.animation;
 import com.shiroha.mmdskin.player.runtime.EntityAnimState;
 import com.shiroha.mmdskin.model.runtime.ManagedModel;
 import com.shiroha.mmdskin.player.sync.PlayerActionSyncService;
+import com.shiroha.mmdskin.util.WaterSurfaceUtil;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.world.InteractionHand;
@@ -39,6 +40,11 @@ public class AnimationStateManager {
 
     private static void updateLayer0Animation(AbstractClientPlayer player, ManagedModel model) {
         EntityAnimState.State target = resolveLayer0State(player);
+        if (target == EntityAnimState.State.Float) {
+            // 漂浮是持续状态：显式恢复循环，并在底层曾到达末帧时重新唤醒播放。
+            model.modelInstance().setLayerLoop(0, true);
+            model.modelInstance().resumeLayer(0);
+        }
         changeAnimationOnce(model, target, 0);
     }
 
@@ -47,7 +53,9 @@ public class AnimationStateManager {
         if (player.isFallFlying()) return EntityAnimState.State.ElytraFly;
         if (player.isSleeping()) return EntityAnimState.State.Sleep;
         if (player.isPassenger()) return resolveRidingState(player);
-        if (player.isSwimming()) return EntityAnimState.State.Swim;
+        if (WaterSurfaceUtil.isSurfaceLocked(player)) return EntityAnimState.State.Float;
+        if (player.isSwimming() && hasMovement(player)) return EntityAnimState.State.Swim;
+        if (WaterSurfaceUtil.isFloating(player)) return EntityAnimState.State.Float;
         if (player.onClimbable()) return resolveClimbingState(player);
         if (player.isSprinting() && !player.isShiftKeyDown()) return EntityAnimState.State.Sprint;
         if (player.isVisuallyCrawling()) return resolveCrawlState(player);
@@ -123,12 +131,21 @@ public class AnimationStateManager {
     private static void updateLayer2Animation(AbstractClientPlayer player, ManagedModel model) {
         if (player.isShiftKeyDown() && !player.isVisuallyCrawling()) {
             changeAnimationOnce(model, EntityAnimState.State.Sneak, 2);
+            // 潜行动画是持续动作：移动时从当前帧继续，停下时保留当前帧。
+            boolean moving = hasMovement(player);
+            model.modelInstance().setLayerLoop(2, moving);
+            if (moving) {
+                model.modelInstance().resumeLayer(2);
+            } else {
+                model.modelInstance().pauseLayer(2);
+            }
             return;
         }
 
         if (model.entityState().stateLayers[2] != EntityAnimState.State.Idle) {
             model.entityState().stateLayers[2] = EntityAnimState.State.Idle;
             model.entityState().layerAnimationKeys[2] = null;
+            model.modelInstance().resumeLayer(2);
             model.modelInstance().transitionAnim(0, 2, TRANSITION_TIME);
         }
     }
@@ -171,9 +188,15 @@ public class AnimationStateManager {
         String animationKey = targetState.propertyName;
         if (model.entityState().stateLayers[layer] != targetState
                 || !Objects.equals(model.entityState().layerAnimationKeys[layer], animationKey)) {
+            long anim = model.animationLibrary().animation(animationKey);
+            if (anim == 0 && targetState != EntityAnimState.State.Idle) {
+                // 动画缺失：保留当前动画，避免切换到空动画导致模型定格
+                return;
+            }
             model.entityState().stateLayers[layer] = targetState;
             model.entityState().layerAnimationKeys[layer] = animationKey;
-            model.modelInstance().transitionAnim(model.animationLibrary().animation(animationKey), layer, TRANSITION_TIME);
+            model.modelInstance().resumeLayer(layer);
+            model.modelInstance().transitionAnim(anim, layer, TRANSITION_TIME);
         }
     }
 

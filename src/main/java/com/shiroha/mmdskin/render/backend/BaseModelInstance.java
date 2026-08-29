@@ -129,6 +129,21 @@ public abstract class BaseModelInstance implements ModelInstance {
     }
 
     @Override
+    public void pauseLayer(long layer) {
+        if (model != 0) backendPort().pauseLayer(model, layer);
+    }
+
+    @Override
+    public void resumeLayer(long layer) {
+        if (model != 0) backendPort().resumeLayer(model, layer);
+    }
+
+    @Override
+    public void seekLayer(long layer, float frame) {
+        if (model != 0) backendPort().seekLayer(model, layer, frame);
+    }
+
+    @Override
     public void resetPhysics() {
         if (model != 0) backendPort().resetModelPhysics(model);
     }

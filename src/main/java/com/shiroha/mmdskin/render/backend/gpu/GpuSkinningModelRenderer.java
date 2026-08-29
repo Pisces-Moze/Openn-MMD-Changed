@@ -493,17 +493,6 @@ final class GpuSkinningModelRenderer {
                 target.subMeshCount,
                 target.indexElementSize,
                 target.indexType,
-                materialId -> target.mats[materialId].tex,
-                target::effectiveMaterialAlpha,
-                materialId -> target.mats[materialId].lilCyanEmissionStrength > 0.0f,
-                materialId -> shader.setAppearance(
-                        target.mats[materialId].lilCyanEmissionStrength,
-                        1.0f, 0.00012f, true));
-        SubMeshDrawHelper.draw(
-                target.subMeshDataBuf,
-                target.subMeshCount,
-                target.indexElementSize,
-                target.indexType,
                 materialId -> target.mats[materialId].emissiveTex,
                 target::effectiveMaterialAlpha,
                 materialId -> target.mats[materialId].hasEmission(),
@@ -564,7 +553,7 @@ final class GpuSkinningModelRenderer {
     }
 
     private static void applyLilToonMaterial(ToonShaderCpu shader, ModelMaterial m) {
-        shader.setLilToonMaterial(m.unlitStrength(), m.lilCyanEmissionStrength, m.matCapStrength(),
+        shader.setLilToonMaterial(m.unlitStrength(), 0.0f, m.matCapStrength(),
                 m.lilUseShadow, m.lilShadowBorder, m.lilShadowBlur,
                 m.lilShadowColor[0], m.lilShadowColor[1], m.lilShadowColor[2],
                 m.lilUseRim, m.lilRimBorder, m.lilRimBlur, m.lilRimPower, m.lilRimIntensity,

@@ -169,9 +169,6 @@ def parse_material(path: Path, assets: Path, index: dict[str, Path],
         "matCapStrength": floats.get("_MatCapBlend", 0.0),
         "useEmission": use_emission,
         "emissionStrength": floats.get("_EmissionBlend", 1.0),
-        # Opt-in Minecraft extension. Set this above zero in the generated JSON
-        # when saturated cyan areas of the main texture are fluorescent.
-        "cyanEmissionStrength": 0.0,
         "emissionTexture": emission_name or "",
         "emissionLayers": ([{
             "texture": emission_name,

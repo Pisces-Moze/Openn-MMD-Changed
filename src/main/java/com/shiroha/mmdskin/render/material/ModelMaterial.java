@@ -41,7 +41,6 @@ public class ModelMaterial {
     /** Emission is opt-in per material; texture names and base colors never enable it. */
     public boolean lilUseEmission = false;
     public float lilEmissionStrength = -1.0f;
-    public float lilCyanEmissionStrength = 0.0f;
     public String lilEmissionTexture = "";
     public final float[] lilEmissionColor = {1.0f, 1.0f, 1.0f};
     public final List<EmissionLayerDefinition> lilEmissionLayers = new ArrayList<>();
@@ -105,7 +104,6 @@ public class ModelMaterial {
         if (p.matCapStrength != null) lilMatCapStrength = p.matCapStrength;
         if (p.useEmission != null) lilUseEmission = p.useEmission;
         if (p.emissionStrength != null) lilEmissionStrength = p.emissionStrength;
-        if (p.cyanEmissionStrength != null) lilCyanEmissionStrength = Math.max(0.0f, p.cyanEmissionStrength);
         if (p.emissionTexture != null) lilEmissionTexture = p.emissionTexture;
         copyRgb(p.emissionColor, lilEmissionColor);
         lilEmissionLayers.clear();

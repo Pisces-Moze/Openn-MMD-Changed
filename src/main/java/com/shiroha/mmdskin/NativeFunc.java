@@ -102,6 +102,10 @@ public class NativeFunc {
 
     public native void SetLayerLoop(long model, long layer, boolean loop);
 
+    public native void PauseLayer(long model, long layer);
+
+    public native void ResumeLayer(long model, long layer);
+
     public native boolean IsLayerAnimationFinished(long model, long layer);
 
     public native boolean SetLayerBoneMask(long model, long layer, String rootBoneName);

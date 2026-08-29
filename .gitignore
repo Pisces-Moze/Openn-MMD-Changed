@@ -26,5 +26,25 @@ rust_engine/target/
 **/__pycache__/
 tools/**/target/
 
+# Copyright-protected model packages and authoring sources
+src/main/resources/assets/openmmdchanged/mmd/
+tools/model_backups/
+Openn-MMD-Changed-v2.0/
+**/*.pmx
+**/*.pmd
+**/*.fbx
+**/*.vmd
+**/*.psd
+**/*.blend
+**/*.prefab
+
+# Model-derived inspection output (tool source remains trackable)
+tools/archive/**/*.png
+tools/archive/**/*.csv
+tools/eye_compare.png
+tools/eyeline_render*.png
+tools/eyeline_triangles*.csv
+tools/fluorescent_preview.png
+
 # Files from Forge MDK
 forge*changelog.txt

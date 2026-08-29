@@ -11,6 +11,12 @@ public interface NativeRenderBackendPort extends NativeModelPort, NativeModelLoa
 
     void setLayerLoop(long modelHandle, long layer, boolean loop);
 
+    void pauseLayer(long modelHandle, long layer);
+
+    void resumeLayer(long modelHandle, long layer);
+
+    void seekLayer(long modelHandle, long layer, float frame);
+
     void resetModelPhysics(long modelHandle);
 
     void setPhysicsEnabled(long modelHandle, boolean enabled);

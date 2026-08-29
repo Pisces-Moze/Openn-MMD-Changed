@@ -108,6 +108,8 @@ pub struct AnimationLayer {
     animation: Option<Arc<VmdAnimation>>,
     current_frame: f32,
     state: AnimationLayerState,
+    /// 独立于过渡状态的暂停标记；暂停过渡时仍允许姿态混合完成，但不推进动画帧。
+    paused: bool,
     config: AnimationLayerConfig,
     effective_weight: f32,
     fade_progress: f32,
@@ -130,6 +132,7 @@ impl AnimationLayer {
             animation: None,
             current_frame: 0.0,
             state: AnimationLayerState::Stopped,
+            paused: false,
             config: AnimationLayerConfig::default(),
             effective_weight: 0.0,
             fade_progress: 0.0,
@@ -147,6 +150,7 @@ impl AnimationLayer {
         self.animation = animation;
         self.current_frame = 0.0;
         self.state = AnimationLayerState::Stopped;
+        self.paused = false;
         self.effective_weight = 0.0;
         self.fade_progress = 0.0;
         self.transition_snapshot = None;
@@ -167,6 +171,7 @@ impl AnimationLayer {
         // 设置新动画
         self.animation = animation;
         self.current_frame = 0.0;
+        self.paused = false;
 
         if transition_time > 0.0 && !snapshot.is_empty() {
             // 开始过渡
@@ -198,16 +203,19 @@ impl AnimationLayer {
 
     /// 暂停动画
     pub fn pause(&mut self) {
-        if self.state == AnimationLayerState::Playing || self.state == AnimationLayerState::FadingIn
-        {
-            self.state = AnimationLayerState::Paused;
+        if self.animation.is_some() && self.state != AnimationLayerState::Stopped {
+            self.paused = true;
         }
     }
 
     /// 恢复播放
     pub fn resume(&mut self) {
-        if self.state == AnimationLayerState::Paused {
+        self.paused = false;
+        // 非循环动画到达末帧后状态会变成 Stopped。上层把该层重新设为循环并调用 resume 时，
+        // 应允许它从末帧跨回开头继续，而不是永久停住。
+        if self.state == AnimationLayerState::Stopped && self.animation.is_some() {
             self.state = AnimationLayerState::Playing;
+            self.effective_weight = self.config.weight;
         }
     }
 
@@ -226,6 +234,7 @@ impl AnimationLayer {
     /// 立即重置
     pub fn reset(&mut self) {
         self.current_frame = 0.0;
+        self.paused = false;
         self.state = AnimationLayerState::Stopped;
         self.effective_weight = 0.0;
         self.fade_progress = 0.0;
@@ -265,6 +274,14 @@ impl AnimationLayer {
         }
 
         let dt = delta_time * self.config.speed;
+
+        if self.paused {
+            // 进入潜行时可以正常完成姿态过渡，但动画时间固定在暂停瞬间。
+            if self.state == AnimationLayerState::Transitioning {
+                self.update_transition(delta_time);
+            }
+            return self.state != AnimationLayerState::Stopped;
+        }
 
         match self.state {
             AnimationLayerState::Playing => {

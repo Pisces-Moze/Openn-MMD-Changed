@@ -132,7 +132,7 @@ python tools/import_unity_liltoon.py `
 | `useMatCap` / `matCapStrength` | 视图空间程序化高光 | 近似；尚不采样 Unity MatCap 图 |
 | `useEmission` / `emissionTexture` / `emissionStrength` | 独立全亮发光图层 | 支持，加法混合 |
 | `emissionLayers` | 一个材质叠加多个明确贴图或颜色筛选发光层 | 完整，推荐新模型使用 |
-| `cyanEmissionStrength` | 旧实验程序的按颜色提取 | 仅兼容旧模型；新模型应制作明确的 Emission PNG |
+| ~~`cyanEmissionStrength`~~ | 旧实验程序的按颜色提取 | **已移除**；新模型应制作明确的 Emission PNG |
 | `normalTexture` / `normalScale` | 法线贴图记录 | 已导入，尚未渲染 |
 | `cull` / `renderMode` / `alphaCutoff` | 剔除、透明模式、裁剪 | 部分兼容，复杂透明排序仍有限制 |
 | `useOutline` / `outlineWidth` / `outlineColor` | 逐材质 GPU 索引扩壳描边 | 支持；不重复 CPU 顶点提交，面部材质自动排除 |
@@ -206,8 +206,8 @@ lightmap 亮度实现，不再重复绘制全亮基础贴图，因此不会形�
    模型接入文档中记录完整路径，并用 `tools/extract_psd_emission_layers.py` 只读导出。
 5. 不要把发光结果烘焙回 Base Color，否则白天基础色会变浅；也不要把整张主贴图
    设为发光，否则暗处会全身发亮。
-6. `maskMode: texture` 是新资产默认值。旧的 `cyanEmissionStrength`、`cyan`、
-   `color` 和 `$base` 筛选只作无源文件时的临时兼容。
+6. `maskMode: texture` 是新资产默认值。材质级的 `cyanEmissionStrength` 已移除；`emissionLayers`
+   里的 `cyan`、`color` 和 `$base` 逐层颜色筛选只作无源文件时的临时兼容。
 7. `emissionStrength` 控制独立发光图强度。发光是视觉全亮，不会像火把一样照亮
    方块和周围实体。
 8. 必须显式写出 `useEmission: true`、`emissionTexture` 和至少一个

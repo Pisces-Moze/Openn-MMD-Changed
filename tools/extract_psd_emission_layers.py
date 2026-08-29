@@ -11,9 +11,6 @@ import argparse
 from pathlib import Path
 import unicodedata
 
-from PIL import Image
-from psd_tools import PSDImage
-
 
 def normalized_name(value: str) -> str:
     """Allow documentation to omit the space in names such as '图层 5'."""
@@ -43,6 +40,11 @@ def resolve_layer(root, path: str):
 
 
 def main() -> None:
+    # Heavy dependencies are pulled in lazily so the pure layer-resolution helpers
+    # above stay importable (and unit-testable) without Pillow/psd-tools.
+    from PIL import Image
+    from psd_tools import PSDImage
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--psd", required=True, type=Path, help="只读源 PSD")
     parser.add_argument("--output", required=True, type=Path, help="输出 RGBA PNG")

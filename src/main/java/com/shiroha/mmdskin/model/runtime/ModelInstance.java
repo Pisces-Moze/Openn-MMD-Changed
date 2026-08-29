@@ -33,6 +33,15 @@ public interface ModelInstance {
     default void setLayerLoop(long layer, boolean loop) {
     }
 
+    default void pauseLayer(long layer) {
+    }
+
+    default void resumeLayer(long layer) {
+    }
+
+    default void seekLayer(long layer, float frame) {
+    }
+
     void resetPhysics();
 
     long getModelHandle();

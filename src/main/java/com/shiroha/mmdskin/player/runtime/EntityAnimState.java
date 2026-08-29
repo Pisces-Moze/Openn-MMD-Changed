@@ -31,6 +31,7 @@ public class EntityAnimState {
         OnClimbable("onClimbable"), OnClimbableUp("onClimbableUp"), OnClimbableDown("onClimbableDown"),
         Swim("swim"), Ride("ride"), Ridden("ridden"), Driven("driven"),
         Sleep("sleep"), ElytraFly("elytraFly"), Die("die"),
+        Float("float"),
         SwingRight("swingRight"), SwingLeft("swingLeft"), ItemRight("itemRight"), ItemLeft("itemLeft"),
         Sneak("sneak"), OnHorse("onHorse"), Crawl("crawl"), LieDown("lieDown");
 

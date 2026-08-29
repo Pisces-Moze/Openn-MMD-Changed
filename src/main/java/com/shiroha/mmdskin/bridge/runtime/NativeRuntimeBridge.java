@@ -88,6 +88,21 @@ public final class NativeRuntimeBridge implements
     }
 
     @Override
+    public void pauseLayer(long modelHandle, long layer) {
+        nativeFunc().PauseLayer(modelHandle, layer);
+    }
+
+    @Override
+    public void resumeLayer(long modelHandle, long layer) {
+        nativeFunc().ResumeLayer(modelHandle, layer);
+    }
+
+    @Override
+    public void seekLayer(long modelHandle, long layer, float frame) {
+        nativeFunc().SeekLayer(modelHandle, layer, frame);
+    }
+
+    @Override
     public void resetModelPhysics(long modelHandle) {
         nativeFunc().ResetModelPhysics(modelHandle);
     }

@@ -21,7 +21,7 @@ mixin {
     config 'openmmdchanged.mixins.json'
 }
 
-version = 1.0
+version = 2.0
 group = mod_group_id
 
 base {

@@ -3,6 +3,7 @@
 use glam::{Mat4, Quat, Vec3};
 use std::collections::{HashMap, HashSet};
 
+use super::humanoid_role::{role_of_name, HumanoidRole};
 use super::{BoneLink, IkSolver};
 
 /// 骨骼集合 - 类似 nphysics Multibody
@@ -17,6 +18,9 @@ pub struct BoneSet {
 
     /// 名称到索引的映射
     name_to_index: HashMap<String, usize>,
+
+    /// 人形角色到索引的映射（VRChat 式角色识别，用于动画骨名与模型骨名不一致时兜底）
+    role_to_index: HashMap<HumanoidRole, usize>,
 
     /// 按变换层级排序的索引
     sorted_indices: Vec<usize>,
@@ -46,6 +50,7 @@ impl BoneSet {
         Self {
             links: Vec::new(),
             name_to_index: HashMap::new(),
+            role_to_index: HashMap::new(),
             sorted_indices: Vec::new(),
             ik_solvers: Vec::new(),
             skinning_matrices: Vec::new(),
@@ -65,6 +70,10 @@ impl BoneSet {
         let index = self.links.len();
         bone.internal_id = index;
         self.name_to_index.insert(bone.name.clone(), index);
+        // 记录该骨的人形角色（首个命中一个角色的骨优先，用于动画骨名不一致时兜底）。
+        if let Some(role) = role_of_name(&bone.name) {
+            self.role_to_index.entry(role).or_insert(index);
+        }
         self.links.push(bone);
         self.needs_hierarchy_update = true;
     }
@@ -212,10 +221,17 @@ impl BoneSet {
         self.links.get_mut(index)
     }
 
-    /// 通过名称查找骨骼
+    /// 通过名称查找骨骼。
+    ///
+    /// 先按精确名称匹配；未命中时按人形角色兜底（VRChat 式识别），这样 FBX/Mixamo 动画骨名
+    /// 与模型实际骨名不一致（如动画 `左肩`、模型 `左肩P`）时仍能找到对应骨，避免骨骼停在绑定姿态。
     #[inline]
     pub fn find_bone_by_name(&self, name: &str) -> Option<usize> {
-        self.name_to_index.get(name).copied()
+        if let Some(&idx) = self.name_to_index.get(name) {
+            return Some(idx);
+        }
+        let role = role_of_name(name)?;
+        self.role_to_index.get(&role).copied()
     }
 
     /// 通过名称查找骨骼（类似 nphysics links_with_name）

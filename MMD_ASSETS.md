@@ -1,7 +1,10 @@
 # Bundled MMD assets
 
-完整的模型转换、实体、Variant、刷怪蛋、针剂、转化箭、盔甲与创造栏教程见：
-[`docs/附属模组开发与模型接入指南.md`](docs/附属模组开发与模型接入指南.md)。
+模型/贴图/动画/材质配置的命名与存放规范见：
+[`docs/命名与资产规范.md`](docs/命名与资产规范.md)。
+完整开发流程（每个文件改什么、怎么注册、怎么测试）见：
+[`docs/文件职责与改动指引.md`](docs/文件职责与改动指引.md)
+与 [`docs/附属模组开发与模型接入指南.md`](docs/附属模组开发与模型接入指南.md)。
 
 The first hard-coded form is `openmmdchanged:mmd_latex`. Its runtime model
 folder is always `openmmdchanged.mmd_latex`; players cannot select or replace
